@@ -58,34 +58,23 @@ GRID_rating_current = 0.0     # xx.x, A
 
 
 
-cmd = 0
 s = 258
 
 # СОЕДИНЕНИЕ С БРОКЕРОМ И ПОДПИСКА НА ВЫБРАННЫЕ ТОПИКИ
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected...") 
-    print("CLIENT: ", client)
-    print("USERDATA: ", userdata)
-    print("FLAGS: ", flags)
-    print("CODE: "+str(rc))
+    # print("Connected...","CLIENT:", client, "USERDATA:", userdata, "FLAGS:", flags, "CODE:", rc)
     client.subscribe(topic+'/#')
 
 # ПОЛУЧЕНИЕ И ОБРАБОТКА СООБЩЕНИЙ ОТ БРОКЕРА
 
 def on_message(client, userdata, msg):
-    print("Received message ")
-    print("CLIENT: ", client)
-    print("USERDATA: ", userdata)
-    print("TOPIC: ", msg.topic)
-    print("MESSAGE: " + str(msg.payload) + " with QoS " + str(msg.qos))
-
-    str_cmd = str(msg.payload)[2:-1]
-    if msg.topic == topic+'/cmd/Device_source_range':
+    # print("Received message ", "CLIENT:", client, "USERDATA:", userdata, "TOPIC:", msg.topic, "MESSAGE:", str(msg.payload), "with QoS =", str(msg.qos))
+    cmd = str(msg.payload)[2:-1]
+    if msg.topic == topic+'/set/device_source_range':
         #print("Device_source_range :" + str_cmd)
-        if str_cmd == "APP":
-            cmd = 0
-            
+        if cmd == "APP":
+                        
         elif str_cmd == "UPS" :
             cmd = 1
             
@@ -107,10 +96,7 @@ def on_message(client, userdata, msg):
 # ПОЛУЧЕНИЕ ПОДТВЕРЖДЕНИЯ О ПУБЛИКАЦИИ ТОПИКА
 
 def on_publish(client, userdata, mid):
-    # print("Publish OK...")
-    # print("CLIENT: ", client)
-    # print("USERDATA: ", userdata)
-    # print("MID: " + str(mid))
+    # print("Publish OK...", "CLIENT:", client, "USERDATA:", userdata, "MID =",  mid)
 
 # КЛИЕНТ MQTT
 
@@ -131,8 +117,8 @@ while True:
 # wait_for_publish == 0 - публикация вне зависимости от наличия связи с брокером, данные могут быть потеряны
 # wait_for_publish == 1 - публикация состоится только при наличии связи с брокером, все данные будут опубликованы после соединения с брокером
 
-    client.publish("my_solar/info/AC_voltage", str(s) , 0)
-    client.publish("my_solar/cmd/Source_priority", "SOL" , 0)
+    client.publish("my_solar/info/ac_voltage", str(s) , 0)
+    client.publish("my_solar/set/source_priority", "SOL" , 0)
 
 
     
