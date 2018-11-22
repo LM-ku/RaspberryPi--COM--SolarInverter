@@ -80,20 +80,20 @@ PBDV = false
 
 # КОМАНДЫ & СRC16
 
-QPGS0 = ['Q','P','G','S','0','\x3f','\xda','\r']
-QPIGS = ['Q','P','I','G','S','\xB7','\xA9','\r']
-QMCHGCR = ['Q','M','C','H','G','C','R','\xD8','\x55','\r'] #?
-QMUCHGCR = ['Q','M','U','C','H','G','C','R','\x26','\x34','\r'] #?
-QPIWS = ['Q','P','I','W','S','\xB4','\xDA','\r'] #valid?
-POP02 = ['P','O','P','0','2','\xE2','\x0B','\r'] # set to SBU
-POP00 = ['P','O','P','0','0','\xC2','\x48','\r'] #Set to UTILITY
-QMOD = ['Q','M','O','D','\x49','\xC1','\r']
-QID = ['Q','I','D','\xD6','\xEA','\r']
+QPGS0 = b'\x51\x50\x47\x53\x30\x3f\xda\x0d'               # Parallel Information inquiry（For 4K/5K）
+QPIGS = b'\x51\x50\x49\x47\x53\xB7\xA9\x0d'               # Device general status parameters inquiry
+QMCHGCR = b'\x51\x4D\x43\x48\x47\x43\x52\xD8\x55\x0D'     # Enquiry selectable value about max charging current
+QMUCHGCR = b'\x51\x4D\x55\x43\x48\x47\x43\x52\x26\x34\0D' # Enquiry selectable value about max utility charging current
+QPIWS = b'\x51\x50\x49\x57\x53\xB4\xDA\x0D'               # Device Warning Status inquiry
+POP02 = b'\x50\x4F\x50\x30\x32\xE2\x0B\x0D'               # set to SBU
+POP01 = b'\x50\x4F\x50\x30\x31\xD2\x69\x0D'               # set to SOL
+POP00 = b'\x50\x4F\x50\x30\x30\xC2\x48\x0D'               # Set to UTI
+QMOD = b'\x51\x4D\x4F\x44\x49\xC1\x0D'                    # Device Mode inquiry
+QID = b'\x51\x49\x44\xd6\xEA','\r']
 QVFW = ['Q','V','F','W','\x62','\x99','\r']
 QVFW2 = ['Q','V','F','W','2','\xC3','\xF5','\r']
-QPIRI = ['Q','P','I','R','I','\xF8','\x54','\r'] #  -->51 50 49 52 49
-QPIRI = ['Q','P','I','R','I','\xF8','\x54','\r']
-QFLAG = ['Q','F','L','A','G','\x98','\x74','\r']
+QPIRI = b'\x51\x50\x49\x52\x49\xF8\x54\x0d'      # Device Rating Information inquiry
+QFLAG = ['Q','F','L','A','G','\x98','\x74','\r'] # Device flag status inquiry 
 
 
 
