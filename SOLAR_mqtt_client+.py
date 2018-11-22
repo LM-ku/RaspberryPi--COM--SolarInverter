@@ -78,6 +78,25 @@ PBCV = false
 PSDV = false
 PBDV = false
 
+# КОМАНДЫ & СRC16
+
+QPGS0 = ['Q','P','G','S','0','\x3f','\xda','\r']
+QPIGS = ['Q','P','I','G','S','\xB7','\xA9','\r']
+QMCHGCR = ['Q','M','C','H','G','C','R','\xD8','\x55','\r'] #?
+QMUCHGCR = ['Q','M','U','C','H','G','C','R','\x26','\x34','\r'] #?
+QPIWS = ['Q','P','I','W','S','\xB4','\xDA','\r'] #valid?
+POP02 = ['P','O','P','0','2','\xE2','\x0B','\r'] # set to SBU
+POP00 = ['P','O','P','0','0','\xC2','\x48','\r'] #Set to UTILITY
+QMOD = ['Q','M','O','D','\x49','\xC1','\r']
+QID = ['Q','I','D','\xD6','\xEA','\r']
+QVFW = ['Q','V','F','W','\x62','\x99','\r']
+QVFW2 = ['Q','V','F','W','2','\xC3','\xF5','\r']
+QPIRI = ['Q','P','I','R','I','\xF8','\x54','\r'] #  -->51 50 49 52 49
+QPIRI = ['Q','P','I','R','I','\xF8','\x54','\r']
+QFLAG = ['Q','F','L','A','G','\x98','\x74','\r']
+
+
+
 cmd = ''
 s = 258
 state_read = false
