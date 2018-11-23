@@ -1,4 +1,4 @@
-﻿import paho.mqtt.client as mqtt
+import paho.mqtt.client as mqtt
 import serial
 import time
  
@@ -6,7 +6,7 @@ import time
 broker = 'localhost'
 topic = 'my_solar'
 
-# ПОСЛЕДОВАТЕЛЬНЫЙ ПОРТ
+# ОПРЕДЕЛЕНИЕ СОМ-ПОРТА ДЛЯ ОБМЕНА С ИНВЕРТОРОМ
 
 ser = serial.Serial(              
     port='/dev/ttyAMA0',
@@ -18,15 +18,8 @@ ser = serial.Serial(
 )
 
 
-# КОМАНДЫ УПРАВЛЕНИЯ ИНВЕРТОРОМ (и скриптом)
 
-set_source_range = ''                           # (APP/UPS)
-set_source_priority = ''                        # (SOL/UTI/SBU)
-set_charger_priority = ''                       # (UTI/SOL/SOL+UTI/OnlySOL)	
-set_batt_recharge_voltage = 0.0                 # xx.x, V
-set_batt_under_voltage = 0.0                    # xx.x, V
-set_batt_redischarge_voltage = 0.0              # xx.x, V
-set_time = 10                                   # периодичность опроса инвертора xx, s 
+
 
 
 # ВЫХОДНЫЕ ПАРАМЕТРЫ ИНВЕРТОРА
@@ -51,14 +44,14 @@ batt_discharge                                  # разрядный ток от
 
 # ИНФОРМАЦИЯ О СОСТОЯНИИ ИНВЕРТОРА
 
-source_range = 0                                # (APP/UPS)			
-source_priority = 0                             # (SOL/UTI/SBU)		
-charger_priority = 0                            # (UTIL/SOL/SOL+UTIL/OnlySOL)	
-mode = ' '                                      # (P,S,L,B,F,H)				
-load_on = false					
-charging = ' '                                  # (SCC,AC,SCC+AC)		
-grid_rating_voltage = 0.0                       # xxx.x, V
-grid_rating_current = 0.0                       # xx.x, A		
+source_range = ''                               # (APP/UPS)			
+source_priority = ''                            # (SOL/UTI/SBU)		
+charger_priority = ''                           # (UTIL/SOL/SOL+UTIL/OnlySOL)	
+mode = ''                                       # (P,S,L,B,F,H)				
+load_on = ''					
+charging = ''                                   # (SCC,AC,SCC+AC)		
+grid_rating_voltage = '000.0'                   # xxx.x, V
+grid_rating_current = '00.0'                    # xx.x, A		
 #		AC_rating_current				 xx.x	A		
 #		AC_rating_frequency			 	 xx.x	Hz
 #		AC_rating active_power	 	 	 xxxx	W
@@ -69,49 +62,66 @@ grid_rating_current = 0.0                       # xx.x, A
 #		BATT_float_voltage				xx.xx	V
 
 
-# ФЛАГИ КОМАНД ИНВЕРТОРА 
 
-pgr = false
-pop = false
-psp = false
-pbcv = false
-psdv = false
-pbdv = false
+# КОМАНДЫ ДЛЯ ИНВЕРТОРА + СRC16
 
-# КОМАНДЫ & СRC16
+QPGS0 = '\x51\x50\x47\x53\x30\x3F\xDa\x0D'                      # Parallel Information inquiry（For 4K/5K）
+QPIGS = '\x51\x50\x49\x47\x53\xB7\xA9\x0D'                      # Device general status parameters inquiry
+QMCHGCR = '\x51\x4D\x43\x48\x47\x43\x52\xD8\x55\x0D'            # Enquiry selectable value about max charging current
+QMUCHGCR = '\x51\x4D\x55\x43\x48\x47\x43\x52\x26\x34\0D'        # Enquiry selectable value about max utility charging current
+QPIWS = '\x51\x50\x49\x57\x53\xB4\xDA\x0D'                      # Device Warning Status inquiry
+POP = {'UTI':'\x50\x4F\x50\x30\x30\xC2\x48\x0D',                # Setting device output source priority to UTI
+       'SOL':'\x50\x4F\x50\x30\x31\xD2\x69\x0D',                # Setting device output source priority to SOL
+       'SBU':'\x50\x4F\x50\x30\x32\xE2\x0B\x0D'                 # Setting device output source priority to SBU
+       }
+PCP = {'UTI':'\x50\x43\x50\x30\x30\x8D\x7A\x0D',                # Setting device charger priority to UTI first
+       'SOL':'\x50\x43\x50\x30\x31\x9D\x5B\x0D',                # Setting device charger priority to SOL first
+       'SOL+UTI':'\x50\x43\x50\x30\x32\xAD\x38\x0D',            # Setting device charger priority to SOL+UTI
+       'OnlySOL':'\x50\x43\x50\x30\x33\xBD\x19\x0D'             # Setting device charger priority to OnlySOL
+       }
+PGR = {'APP':'\x50\x47\x52\x30\x30\x29\xEB\x0D',                # Setting device grid working range to APP
+       'UPS':'\x50\x47\x52\x30\x31\x39\xCA\x0D'                 # Setting device grid working range to UPS
+       }
+QMOD = '\x51\x4D\x4F\x44\x49\xC1\x0D'                           # Device Mode inquiry
+QDI = '\x51\x44\x49\x71\x1B\x0D'                                # The default setting value information
+QVFW = '\x51\x56\x46\x57\x62\x99\x0D'                           # Main CPU Firmware version inquiry
+QVFW2 = '\x51\x56\x46\x57\x32\xC3\xF5\x0D'                      # Another CPU Firmware version inquiry
+QPIRI = '\x51\x50\x49\x52\x49\xF8\x54\x0D'                      # Device Rating Information inquiry
+QFLAG = '\x51\x46\x4C\x41\x47\x98\x74\x0D'                      # Device flag status inquiry 
+PBCV = {'44.0':'\x50\x42\x43\x56\x34\x34\x2E\x30\xE6\xEB\x0D',  #      Device flag status inquiry
+        '45.0':'\x50\x42\x43\x56\x34\x35\x2E\x30\xD1\xDB\x0D',
+        '46.0':'\x50\x42\x43\x56\x34\x36\x2E\x30\x88\x8B\x0D',
+        '47.0':'\x50\x42\x43\x56\x34\x37\x2E\x30\xBF\xBB\x0D',
+        '48.0':'\x50\x42\x43\x56\x34\x38\x2E\x30\x93\x8A\x0D',
+        '49.0':'\x50\x42\x43\x56\x34\x39\x2E\x30\xA4\xBA\x0D',
+        '50.0':'\x50\x42\x43\x56\x35\x30\x2E\x30\x4C\x9F\x0D',
+        '51.0':'\x50\x42\x43\x56\x35\x31\x2E\x30\x7B\xAF\x0D'
+        }
 
-QPGS0 = '\x51\x50\x47\x53\x30\x3F\xDa\x0D'               # Parallel Information inquiry（For 4K/5K）
-QPIGS = '\x51\x50\x49\x47\x53\xB7\xA9\x0D'               # Device general status parameters inquiry
-QMCHGCR = '\x51\x4D\x43\x48\x47\x43\x52\xD8\x55\x0D'     # Enquiry selectable value about max charging current
-QMUCHGCR = '\x51\x4D\x55\x43\x48\x47\x43\x52\x26\x34\0D' # Enquiry selectable value about max utility charging current
-QPIWS = '\x51\x50\x49\x57\x53\xB4\xDA\x0D'               # Device Warning Status inquiry
-POP00 = '\x50\x4F\x50\x30\x30\xC2\x48\x0D'               # Setting device output source priority to UTI
-POP01 = '\x50\x4F\x50\x30\x31\xD2\x69\x0D'               # Setting device output source priority to SOL
-POP02 = '\x50\x4F\x50\x30\x32\xE2\x0B\x0D'               # Setting device output source priority to SBU
-PCP00 = '\x50\x43\x50\x30\x30\x8D\x7A\x0D'               # Setting device charger priority to UTI first
-PCP01 = '\x50\x43\x50\x30\x31\x9D\x5B\x0D'               # Setting device charger priority to SOL first
-PCP02 = '\x50\x43\x50\x30\x32\xAD\x38\x0D'               # Setting device charger priority to SOL+UTI
-PCP03 = '\x50\x43\x50\x30\x33\xBD\x19\x0D'               # Setting device charger priority to OnlySOL
-PGR00 = '\x50\x47\x52\x30\x30\x29\xEB\x0D'               # Setting device grid working range to APP
-PGR01 = '\x50\x47\x52\x30\x31\x39\xCA\x0D'               # Setting device grid working range to UPS
-QMOD = '\x51\x4D\x4F\x44\x49\xC1\x0D'                    # Device Mode inquiry
-QDI = '\x51\x44\x49\x71\x1B\x0D'                         # The default setting value information
-QVFW = '\x51\x56\x46\x57\x62\x99\x0D'                    # Main CPU Firmware version inquiry
-QVFW2 = '\x51\x56\x46\x57\x32\xC3\xF5\x0D'               # Another CPU Firmware version inquiry
-QPIRI = '\x51\x50\x49\x52\x49\xF8\x54\x0D'               # Device Rating Information inquiry
-QFLAG = '\x51\x46\x4C\x41\x47\x98\x74\x0D'               # Device flag status inquiry 
 
 
 
+        
+PCDVx = '\x50\x43\x44\x56'               # Device flag status inquiry 
+PBDVx = '\x50\x42\x44\x56'               # Device flag status inquiry
 
+set_time = 10                                   # периодичность опроса инвертора xx, s
 
 cmd = ''
 s = 258
 state_read = false
 
+# ОБМЕН С ИНВЕРТОРОМ ЧЕРЕЗ COM-ПОРТ
+# функция возвращает : ( <строка данных> , <СRC16> )
+
+def comm_inverter(msg_wr):
+    ser.write(bytes(msg_wr, 'utf-8'))
+    time.sleep(0.5)
+    return ser.readline()[:-3], ser.readline()[-3:-1]
+
 # РАСЧЕТ СRC16
 
-def str_crc16(message):
+def crc16(message):
     # https://bytes.com/topic/python/insights/887357-python-check-crc-frame-crc-16-ccitt      
     #CRC-16-CITT poly, the CRC sheme used by ymodem protocol
     #16bit operation register, initialized to zeros
@@ -139,83 +149,117 @@ def str_crc16(message):
             crc_l = reg & 0xFF    
     return '\\' + str(hex(crc_h))[1:] + '\\' + str(hex(crc_l))[1:]
 
-# ФОРМАТИРОВАНИЕ УСТАВКИ ДЛЯ ПЕРЕДАЧИ В ИНВЕРТОР
 
-def to_value(cmd, lower_limit, uper_limit, pattern):
-    if float(cmd) < lower_limit : return(lower_limit)
-    if float(cmd) > uper_limit : return(uper_limit)
-    return(pattern.format(float(cmd)))
+    
 
-
-# СОЕДИНЕНИЕ С БРОКЕРОМ И ПОДПИСКА НА ТОПИКИ
+# ПОДКЛЮЧЕНИЕ К БРОКЕРУ И ПОДПИСКА НА ТОПИКИ
 
 def on_connect(client, userdata, flags, rc):
     #print('Connected...', 'CLIENT:', client, 'USERDATA:', userdata, 'FLAGS:', flags, 'CODE =', rc)
     client.subscribe(topic+'/#')
 
-# ПОЛУЧЕНИЕ КОМАНД ОТ БРОКЕРА И ФОРМИРОВАНИЕ СООБЩЕНИЙ ДЛЯ ПЕРЕДАЧИ ИНВЕРТОРУ
+# ПОЛУЧЕНИЕ КОМАНД ОТ БРОКЕРА И ПЕРЕДАЧА ИНВЕРТОРУ. ПОДТВЕРЖДЕНИЕ ОПЕРАЦИЙ
 
 def on_message(client, userdata, msg):
     #print('Received message...', 'CLIENT:', client, 'USERDATA:', userdata, 'TOPIC:', msg.topic, 'MESSAGE:', msg.payload, 'QoS =', msg.qos)
-    cmd = str(msg.payload)[2:-1]
-    if msg.topic == topic+'/set/period_s':        
+    # value = str(msg.payload)[2:-1]
+    value = (msg.payload)[2:-1].decode()
+    set_value = '{:0>4.1f}'.format(float(value))
+    if msg.topic == topic+'/set/period_s':                              # период опроса инвертора, s
             #print('During :', cmd)
-            SET_Time = int(cmd)  
+            set_time = int(value)  
        
     if state_read :
-            if msg.topic == topic+'/set/device_source_range':             # 'PGR'+set_source_range+<crc16>
-                #print('SET_source_range :', cmd)
-                if cmd == 'APP' and source_range != '00'   : set_source_range = PGR00 ; pgr = true
-                elif cmd == 'UPS' and source_range != '01' : set_source_range = PGR01 ; pgr = true
-                else pgr = false
-             
-            elif msg.topic == topic+'/set/source_priority':              # 'POP'+set_source_range+<crc16>   
-                #print('Set_source_priority :', cmd)
-                if cmd == 'UTI' and source_priority != '00'   : set_source_priority = POP00 ; pop = true
-                elif cmd == 'SOL' and source_priority != '01' : set_source_priority = POP01 ; pop = true
-                elif cmd == 'SBU' and source_priority != '02' : set_source_priority = POP02 ; pop = true
-                else : pop = false
+        if [msg.topic == topic+'/set/device_source_range' and           # 'PGR'+<value>+<crc16>
+            ((value == 'APP' and source_range != '00') or
+             (value == 'UPS' and source_range != '01'))] :             
+            #print('SET_source_range :', value)
+            ack = comm_inverter(PGR[value])
+            if ack == ('(ACK', '\x39\x20') :
+                set_source_range = true
+                #print('SETTTING device_source_range OK')
+            else :
+                set_source_range = false
+                #print('SETTTING device_source_range ERR')
+            client.publish(topic+'/ack/device_source_range', set_source_range, 0)
+                             
+        elif [msg.topic == topic+'/set/source_priority' and             # 'POP'+<value>+<crc16>
+              ((value == 'UTI' and source_priority != '00') or
+               (value == 'SOL' and source_priority != '01') or
+               (value == 'SBU' and source_priority != '02'))] :
+            #print('Set_source_priority :', value)
+            ack = comm_inverter(POP[value])
+            if ack == ('(ACK', '\x39\x20') :
+                set_source_priority = true
+                #print('SETTTING source_priority OK')
+            else :
+                set_source_priority = false
+                #print('SETTTING source_priority ERR')
+            client.publish(topic+'/ack/source_priority', set_source_range, 0)
+                                
+        elif [msg.topic == topic+'/set/charger_priority' and              # 'PCP'+<cmd>+<crc16>
+              ((value == 'UTI' and charger_priority != '00') or
+               (value == 'SOL' and charger_priority != '01') or
+               (value == 'SOL+UTI' and charger_priority != '02') or
+               (value == 'OnlySOL' and charger_priority != '03'))] :
+            #print('SET_charger_priority :', value)
+            ack = comm_inverter(PCP[value])
+            if ack == ('(ACK', '\x39\x20') :
+                set_charger_priority = true
+                #print('SETTTING charger_priority OK')
+            else :
+                set_charger_priority = false
+                #print('SETTTING charger_priority ERR')
+            client.publish(topic+'/ack/charger_priority', set_charger_priority, 0)
                 
-            elif msg.topic == topic+'/set/charger_priority':              # 'PSP'+set_charger_priority+<crc16>  
-                #print('SET_charger_priority :', cmd)            
-                if cmd == 'UTI' and charger_priority != '00'       : set_charger_priority = PCP00 ; pcp = true
-                elif cmd == 'SOL' and charger_priority != '01'     : set_charger_priority = PCP01 ; pcp = true
-                elif cmd == 'SOL+UTI' and charger_priority != '02' : set_charger_priority = PCP02 ; pcp = true
-                elif cmd == 'OnlySOL' and charger_priority != '03' : set_charger_priority = PCP03 ; pcp = true
-                else : pop = false
-                
-            elif msg.topic == topic+'/set/batt_recharge_voltage':         # 'PBCV'+set_batt_recharge_voltage+<crc16>
-                lower_limit = 44.0 ; uper_limit = 51.0
-                set_value = to_value(cmd, lower_limit, uper_limit, '{:0>4.1f}')
-                #print('SET_batt_recharge_voltage :', set_value)
-                if batt_recharge_voltage != set_value :
-                    message = 'PBCV' + set_value
-                    set_batt_recharge_voltage = message + str_crc16(message) + '\x0D'
-                    pbcv = true
-                else : pbcv = false
-
-            elif msg.topic == topic+'/set/batt_under_voltage':            # 'PSDV'+set_batt_under_voltage+<crc16>
-                lower_limit = 40.0 ; uper_limit = 48.0
-                set_value = to_value(cmd, lower_limit, uper_limit, '{:0>4.1f}')
-                #print('SET_batt_under_voltage :', set_value)
-                if batt_under_voltage != set_value :
-                   message = 'PCDV' + set_value
-                   set_batt_under_voltage = message + str_crc16(message) + '\x0D'
-                   psdv = true
-                else : psdv = false   
+        elif [msg.topic == topic+'/set/batt_recharge_voltage' and         # 'PBCV'+<set_value>+<crc16>
+              batt_recharge_voltage != set_value] :
+            #print('SET_batt_recharge_voltage :', value)
+            try:
+                ack = comm_inverter(PBCV[set_value])
+                if ack == ('(ACK', '\x39\x20') :
+                    set_batt_recharge_voltage = true
+                    #print('SETTTING batt_recharge_voltage OK')
+                else :
+                    set_batt_recharge_voltage = false
+                    #print('SETTTING batt_recharge_voltage ERR')
+            except:
+                set_batt_recharge_voltage = false
+                #print('SET batt_recharge_voltage VAL WRONG')
+            client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
+                    
+        elif [msg.topic == topic+'/set/batt_under_voltage' and            # 'PSDV'+<set_value>+<crc16>
+            batt_under_voltage != set_value] :
+            #print('SET_batt_under_voltage :', value) 
+            try:
+                ack = comm_inverter(PSDV[set_value])
+                if ack == ('(ACK', '\x39\x20') :
+                    set_batt_under_voltage = true
+                    #print('SETTTING batt_under_voltage OK')
+                else :
+                    set_batt_under_voltage = false
+                    #print('SETTTING batt_under_voltage ERR')
+            except:
+                set_batt_under_voltage = false
+                #print('SET batt_under_voltage VAL WRONG') 
+            client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
                  
-            elif msg.topic == topic+'/set/batt_redischarge_voltage':            # 'PBDV'+set_batt_redischarge_voltage+<crc16>
-                PSDV = true
-                lower_limit = 48.0
-                uper_limit = 58.0
-                set_batt_redischarge_voltage = to_value(cmd, lower_limit, uper_limit, '{:0>4.1f}')
-                #print('SET_batt_redischarge_voltage :', SET_BATT_redischarge_voltage)
-
-# ОБМЕН СООБЩЕНИЯМИ С ИНВЕРТОРОМ
-def msg_from_inverter(msg_wr):
-    ser.write(bytes(msg_wr, 'utf-8'))
-    time.sleep(0.5)
-    return = str(ser.readline(),'utf-8')  
+        elif [msg.topic == topic+'/set/batt_redischarge_voltage' and      # 'PBDV'+<set_value>+<crc16>
+            batt_redischarge_voltage != set_value] :
+            #print('SET_batt_redischarge_voltage :', value) 
+            try:
+                ack = comm_inverter(PBDV[set_value])
+                if ack == ('(ACK', '\x39\x20') :
+                    set_batt_redischarge_voltage = true
+                    #print('SETTTING batt_redischarge_voltage OK')
+                else :
+                    set_batt_redischarge_voltage = false
+                    #print('SETTTING batt_redischarge_voltage ERR')
+            except:
+                set_batt_redischarge_voltage = false
+                #print('SET batt_redischarge_voltage VAL WRONG') 
+            client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
+ 
 
 # ПОДТВЕРЖДЕНИЕ ПУБЛИКАЦИИ ТОПИКА
 
@@ -239,57 +283,87 @@ client.loop_start()
 
 
 
-# ЦИКЛ ОПРОСА ИНВЕРТОРА И ПЕРЕДАЧИ ДАННЫХ (ПУБЛИКАЦИИ)
-
-while True:
-    time.sleep(SET_Time)
-
-# ОПРОС ИНВЕРТОРА ЧЕРЕЗ RS232
-
-
-
-
-
-
-
-
-
-# ПУБЛИКАЦИЯ ВЫХОДНЫХ ПАРАМЕТРОВ ИНВЕРТОРА
+# ОПРОС ИНВЕРТОРА И ПЕРЕДАЧА ДАННЫХ БРОКЕРУ (ПУБЛИКАЦИИ)
 # publish(topic, payload, wait_for_publish)
 # wait_for_publish == 0 - публикация вне зависимости от наличия связи с брокером, данные могут быть потеряны
 # wait_for_publish == 1 - публикация состоится только при наличии связи с брокером, все данные будут опубликованы после соединения с брокером
 
-    client.publish(topic+'/values/grid_voltage', GRID_voltage, 0)
-    client.publish(topic+'/values/grid_frequency', GRID_frequency, 0)
-    client.publish(topic+'/values/ac_voltage', AC_voltage, 0)
-    client.publish(topic+'/values/ac_frequency', AC_frequency, 0)
-    client.publish(topic+'/values/ac_va_power', AC_va_power, 0)
-    client.publish(topic+'/values/ac_w_power', AC_w_power, 0)
-    client.publish(topic+'/values/ac_load', AC_load, 0)
-    client.publish(topic+'/values/bus_voltage', BUS_voltage, 0)
-    client.publish(topic+'/values/batt_voltage', BATT_voltage, 0)
-    client.publish(topic+'/values/batt_charging', BATT_charging, 0)
-    client.publish(topic+'/values/batt_capacity', BATT_capacity, 0)
-    client.publish(topic+'/values/temp_inverter', TEMP_inverter, 0)
-    client.publish(topic+'/values/pv_current', PV_current, 0)
-    client.publish(topic+'/values/pv_voltage', PV_voltage, 0)
-    client.publish(topic+'/values/pv_power', PV_power, 0)
-    client.publish(topic+'/values/scc_voltage', SCC_voltage, 0)
-    client.publish(topic+'/values/batt_discharge', BATT_discharge, 0)
+# - выходные параметры инвертора
 
+values = comm_inverter(QPIGS)
+if values[1] == str_crc16(values[0]) :
 
-# ПУБЛИКАЦИЯ ИНФОРМАЦИИ О СОСТОЯНИИ ИНВЕРТОРА
+    grid_voltage = values[0][1:5]
+    grid_frequency = values[0][7:10]
+    ac_voltage = values[0][12:16]
+    ac_frequency = values[0][18:21]
+    ac_va_power = values[0][23:26]
+    ac_w_power = values[0][28:31]
+    ac_load = values[0][33:35]
+    bus_voltage = values[0][37:39]
+    batt_voltage = values[0][41:45]
+    batt_charging = '{:0>4.1f}'.format(float(values[0][47:49])/10.0)
+    batt_capacity = values[0][51:53]
+    temp_inverter = values[0][55:58]
+    pv_current = values[0][60:63]
+    pv_voltage = values[0][65:69]
+    pv_power = '{:0>4.0f}'.format(float(pv_current) * float(pv_voltage))
+    scc_voltage = values[0][71:75]
+    batt_discharge = values[0][77:81]
+       
+
+    client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
+    client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
+    client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
+    client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
+    client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
+    client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
+    client.publish(topic+'/status/ac_load', ac_load, 0)
+    client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
+    client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
+    client.publish(topic+'/status/batt_charging', batt_charging, 0)
+    client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
+    client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
+    client.publish(topic+'/status/pv_current', pv_current, 0)
+    client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
+    client.publish(topic+'/status/pv_power', pv_power, 0)
+    client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
+    client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
+    
+else:
+    #print('QPIGS - COMM ERROR')
+    pass
+
+# - режим работы инвертора
+
+values = comm_inverter(QMOD)
+if values[1] == str_crc16(values[0]) :
+    if values[0] == '(P' : mode = 'Pover on mode'
+    if values[0] == '(S' : mode = 'Standby mode'
+    if values[0] == '(L' : mode = 'Line mode'
+    if values[0] == '(B' : mode = 'Battery mode'
+    if values[0] == '(F' : mode = 'Fault mode'
+    if values[0] == '(H' : mode = 'Pover saving mode'    
+    
+    client.publish(topic+'/info/source_priority', mode , 0)
+
+else:
+    #print('QPIGS - COMM ERROR')
+    pass
+
+# - состояние инвертора
     
     client.publish(topic+'/info/source_priority', 'SOL' , 0)
 
 
-# ПУБЛИКАЦИЯ ИНФОРМАЦИИ ОБ ОШИБКАХ ИНВЕРТОРА
+# - ошибки и неисправности инвертора
     
+values = comm_inverter(QPIWS)
+if values[1] == str_crc16(values[0]) :
+
     client.publish(topic+'/warning/reserved', warning[0] , 0)
     
-
-# ПЕРЕДАЧА КОМАНД ИНВЕРТОРУ
-
-    if PGR and SET_source_range != Source_range :
-        message = 'PGR'+SET_source_range
-        cmd_write =  message + str_CRC16(message) + '\n'          
+else:
+    #print('QPIGS - COMM ERROR')
+    pass
+    
