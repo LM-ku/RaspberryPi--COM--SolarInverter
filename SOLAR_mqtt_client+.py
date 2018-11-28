@@ -119,7 +119,7 @@ PBDV = {'48.0':'\x50\x42\x44\x56\x34\x38\x2E\x30  <crc> \x0D'   # Set battery re
 
 set_time = 10                                                   # периодичность опроса инвертора xx, s
 cmd = ''
-status_rd = false
+status_rd = False
 
 # ОБМЕН С ИНВЕРТОРОМ ЧЕРЕЗ COM-ПОРТ
 # функция возвращает : ( <data> , <сrc> )
@@ -318,167 +318,171 @@ client.loop_start()
 #client.loop_forever()
 
 
-# while True
-
-
 
 # ОПРОС ИНВЕРТОРА И ПЕРЕДАЧА ДАННЫХ БРОКЕРУ (ПУБЛИКАЦИИ)
 # publish(topic, payload, wait_for_publish)
 # wait_for_publish == 0 - публикация вне зависимости от наличия связи с брокером, данные могут быть потеряны
 # wait_for_publish == 1 - публикация состоится только при наличии связи с брокером, все данные будут опубликованы после соединения с брокером
 
+time_sta = time.time + set_time
+
+while True
+
+    if (time.time - time_sta) >= set_time :
+        time_sta = time.time
+
 # - выходные параметры инвертора
 
-values = comm_inverter(QPIGS)
-if values[1] == str_crc16(values[0]) :
+        values = comm_inverter(QPIGS)
+        if values[1] == str_crc16(values[0]) :
  
-    status_rd = true
-    grid_voltage = values[0][1:5]
-    grid_frequency = values[0][7:10]
-    ac_voltage = values[0][12:16]
-    ac_frequency = values[0][18:21]
-    ac_va_power = values[0][23:26]
-    ac_w_power = values[0][28:31]
-    ac_load = values[0][33:35]
-    bus_voltage = values[0][37:39]
-    batt_voltage = values[0][41:45]
-    batt_charging = '{:0>4.1f}'.format(float(values[0][47:49])/10.0)
-    batt_capacity = values[0][51:53]
-    temp_inverter = values[0][55:58]
-    pv_current = values[0][60:63]
-    pv_voltage = values[0][65:69]
-    pv_power = '{:0>4.0f}'.format(float(pv_current) * float(pv_voltage))
-    scc_voltage = values[0][71:75]
-    batt_discharge = values[0][77:81]
-    device_status = values[0][83:90]
+            status_rd = True
+            grid_voltage = values[0][1:5]
+            grid_frequency = values[0][7:10]
+            ac_voltage = values[0][12:16]
+            ac_frequency = values[0][18:21]
+            ac_va_power = values[0][23:26]
+            ac_w_power = values[0][28:31]
+            ac_load = values[0][33:35]
+            bus_voltage = values[0][37:39]
+            batt_voltage = values[0][41:45]
+            batt_charging = '{:0>4.1f}'.format(float(values[0][47:49])/10.0)
+            batt_capacity = values[0][51:53]
+            temp_inverter = values[0][55:58]
+            pv_current = values[0][60:63]
+            pv_voltage = values[0][65:69]
+            pv_power = '{:0>4.0f}'.format(float(pv_current) * float(pv_voltage))
+            scc_voltage = values[0][71:75]
+            batt_discharge = values[0][77:81]
+            device_status = values[0][83:90]
     
-    if values[0][86] == '1' : load = 'on' 
-    else : load = 'off' 
+            if values[0][86] == '1' : load = 'on' 
+            else : load = 'off' 
      
-    if values[0][88:90] == '110' : charging = 'Charging on with SCC charge on'
-    elif values[0][88:90] == '101' : charging = 'Charging on with AC charge on'
-    elif values[0][88:90] == '111' : charging = 'Charging on with SCC and AC charge on',
-    else : charging = 'unknow'
+            if values[0][88:90] == '110' : charging = 'Charging on with SCC charge on'
+            elif values[0][88:90] == '101' : charging = 'Charging on with AC charge on'
+            elif values[0][88:90] == '111' : charging = 'Charging on with SCC and AC charge on',
+            else : charging = 'unknow'
     
    
-    client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
-    client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
-    client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
-    client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
-    client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
-    client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
-    client.publish(topic+'/status/ac_load', ac_load, 0)
-    client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
-    client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
-    client.publish(topic+'/status/batt_charging', batt_charging, 0)
-    client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
-    client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
-    client.publish(topic+'/status/pv_current', pv_current, 0)
-    client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
-    client.publish(topic+'/status/pv_power', pv_power, 0)
-    client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
-    client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
-    client.publish(topic+'/status/load', load, 0)
-    client.publish(topic+'/status/charging', charging, 0)
+            client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
+            client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
+            client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
+            client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
+            client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
+            client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
+            client.publish(topic+'/status/ac_load', ac_load, 0)
+            client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
+            client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
+            client.publish(topic+'/status/batt_charging', batt_charging, 0)
+            client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
+            client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
+            client.publish(topic+'/status/pv_current', pv_current, 0)
+            client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
+            client.publish(topic+'/status/pv_power', pv_power, 0)
+            client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
+            client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
+            client.publish(topic+'/status/load', load, 0)
+            client.publish(topic+'/status/charging', charging, 0)
     
      
-else:
-    #print('QPIGS - COMM ERROR')
-    pass
+        else:
+            #print('QPIGS - COMM ERROR')
+            pass
 
 # - режим работы инвертора
 
-values = comm_inverter(QMOD)
-if values[1] == str_crc16(values[0]) :
+        values = comm_inverter(QMOD)
+        if values[1] == str_crc16(values[0]) :
  
-    if values[0] == '(P' : mode = 'Pover On mode'
-    if values[0] == '(S' : mode = 'Standby mode'
-    if values[0] == '(L' : mode = 'Line mode'
-    if values[0] == '(B' : mode = 'Battery mode'
-    if values[0] == '(F' : mode = 'Fault mode'
-    if values[0] == '(H' : mode = 'Pover saving mode'    
+            if values[0] == '(P' : mode = 'Pover On mode'
+            if values[0] == '(S' : mode = 'Standby mode'
+            if values[0] == '(L' : mode = 'Line mode'
+            if values[0] == '(B' : mode = 'Battery mode'
+            if values[0] == '(F' : mode = 'Fault mode'
+            if values[0] == '(H' : mode = 'Pover saving mode'    
     
-    client.publish(topic+'/info/source_priority', mode , 0)
+            client.publish(topic+'/info/source_priority', mode , 0)
 
-else:
-    #print('QPIGS - COMM ERROR')
-    pass
+        else:
+            #print('QPIGS - COMM ERROR')
+            pass
 
 # - состояние инвертора
    
-values = comm_inverter(QPIRI)
-if values[1] == str_crc16(values[0]) :
+        values = comm_inverter(QPIRI)
+        if values[1] == str_crc16(values[0]) :
    
-    if values[0][72] == '0' : source_range = 'APP'
-    elif values[0][72] == '1' : source_range = 'UPS' 
-    else : source_range = '---'
+            if values[0][72] == '0' : source_range = 'APP'
+            elif values[0][72] == '1' : source_range = 'UPS' 
+            else : source_range = '---'
         
-    if values[0][74] == '0' : source_priority = 'UTI'
-    elif values[0][74] == '1' : source_priority = 'SOL'
-    elif values[0][74] == '2' : source_priority = 'SBU'     
-    else : source_priority = '---' 
+            if values[0][74] == '0' : source_priority = 'UTI'
+            elif values[0][74] == '1' : source_priority = 'SOL'
+            elif values[0][74] == '2' : source_priority = 'SBU'     
+            else : source_priority = '---' 
         
-    if values[0][74] == '0' : charger_priority = 'UTI'
-    elif values[0][74] == '1' : charger_priority = 'SOL'
-    elif values[0][74] == '2' : charger_priority = 'SOL+UTI'
-    elif values[0][74] == '3' : charger_priority = 'OnlySOL'       
-    else : charger_priority = '---'     
+            if values[0][74] == '0' : charger_priority = 'UTI'
+            elif values[0][74] == '1' : charger_priority = 'SOL'
+            elif values[0][74] == '2' : charger_priority = 'SOL+UTI'
+            elif values[0][74] == '3' : charger_priority = 'OnlySOL'       
+            else : charger_priority = '---'     
       
-    batt_recharge_voltage = values[0][43:46]
-    batt_under_voltage = values[0][48:51] 
-    batt_redischarge_voltage = values[0][87:90]
+            batt_recharge_voltage = values[0][43:46]
+            batt_under_voltage = values[0][48:51] 
+            batt_redischarge_voltage = values[0][87:90]
              
-    client.publish(topic+'/info/source_range', source_range , 0)
-    client.publish(topic+'/info/source_priority', source_priority , 0)
-    client.publish(topic+'/info/charger_priority', charger_priority , 0)
-    client.publish(topic+'/info/batt_recharge_voltage', batt_recharge_voltage , 0)
-    client.publish(topic+'/info/batt_under_voltage', batt_under_voltage , 0)
-    client.publish(topic+'/info/batt_redischarge_voltage', batt_redischarge_voltage , 0)
+            client.publish(topic+'/info/source_range', source_range , 0)
+            client.publish(topic+'/info/source_priority', source_priority , 0)
+            client.publish(topic+'/info/charger_priority', charger_priority , 0)
+            client.publish(topic+'/info/batt_recharge_voltage', batt_recharge_voltage , 0)
+            client.publish(topic+'/info/batt_under_voltage', batt_under_voltage , 0)
+            client.publish(topic+'/info/batt_redischarge_voltage', batt_redischarge_voltage , 0)
       
-else:
-    #print('QPIRI - COMM ERROR')
-    pass      
+        else:
+            #print('QPIRI - COMM ERROR')
+            pass      
 
 # - ошибки и неисправности инвертора
     
-values = comm_inverter(QPIWS)
-if values[1] == str_crc16(values[0]) :
+        values = comm_inverter(QPIWS)
+        if values[1] == str_crc16(values[0]) :
  
-    flt = 'Warning'
-    if values[0][1] == '1' : client.publish(topic+'/warning/reserved', 'Reserved' , 0)
-    if values[0][2] == '1' : flt ='Fault' ; client.publish(topic+'/warning/reserved', 'Inverter fault' , 0)
-    if values[0][3] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Bus Over' , 0)
-    if values[0][4] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Bus Under' , 0)
-    if values[0][5] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Bus Soft Fail' , 0)
-    if values[0][6] == '1' : client.publish(topic+'/warning/reserved', 'Line Fail' , 0)
-    if values[0][7] == '1' : client.publish(topic+'/warning/reserved', 'OPVShort' , 0)
-    if values[0][8] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Inverter voltage too low' , 0)
-    if values[0][9] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Inverter voltage too high' , 0)
-    if values[0][10] == '1' : client.publish(topic+'/warning/reserved', flt + ' : Over temperature' , 0)
-    if values[0][11] == '1' : client.publish(topic+'/warning/reserved', flt + ' : Fan locked' , 0)
-    if values[0][12] == '1' : client.publish(topic+'/warning/reserved', flt + ' : Battery voltage high' , 0) 
-    if values[0][13] == '1' : client.publish(topic+'/warning/reserved', 'Warning : Battery low alarm' , 0)
-    if values[0][14] == '1' : client.publish(topic+'/warning/reserved', 'Reserved' , 0)
-    if values[0][15] == '1' : client.publish(topic+'/warning/reserved', 'Warning : Battery under shutdown' , 0)
-    if values[0][16] == '1' : client.publish(topic+'/warning/reserved', 'Reserved' , 0)
-    if values[0][17] == '1' : client.publish(topic+'/warning/reserved', flt + ' : Over load' , 0)
-    if values[0][18] == '1' : client.publish(topic+'/warning/reserved', 'Warning : Eeprom fault' , 0)
-    if values[0][19] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Inverter Over Current' , 0)
-    if values[0][20] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Inverter Soft Fail' , 0)
-    if values[0][21] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Self Test Fail' , 0)
-    if values[0][22] == '1' : client.publish(topic+'/warning/reserved', 'Fault : OP DC Voltage Over' , 0) 
-    if values[0][23] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Bat Open' , 0)
-    if values[0][24] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Current Sensor Fail' , 0)
-    if values[0][25] == '1' : client.publish(topic+'/warning/reserved', 'Fault : Battery Short' , 0)
-    if values[0][26] == '1' : client.publish(topic+'/warning/reserved', 'Warning : Power limit' , 0)
-    if values[0][27] == '1' : client.publish(topic+'/warning/reserved', 'Warning : PV voltage high' , 0)
-    if values[0][28] == '1' : client.publish(topic+'/warning/reserved', 'Warning : MPPT overload fault' , 0)
-    if values[0][29] == '1' : client.publish(topic+'/warning/reserved', 'Warning : MPPT overload warning' , 0)
-    if values[0][30] == '1' : client.publish(topic+'/warning/reserved', 'Warning : Battery too low to charge' , 0)
-    if values[0][31] == '1' : client.publish(topic+'/warning/reserved', 'Reserved' , 0)
-    if values[0][32] == '1' : client.publish(topic+'/warning/reserved', 'Reserved' , 0)  
+            flt = 'Warning'
+            if values[0][1] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
+            if values[0][2] == '1' : flt ='Fault' ; client.publish(topic+'/alarm', 'Inverter fault' , 0)
+            if values[0][3] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Over' , 0)
+            if values[0][4] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Under' , 0)
+            if values[0][5] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Soft Fail' , 0)
+            if values[0][6] == '1' : client.publish(topic+'/alarm', 'Line Fail' , 0)
+            if values[0][7] == '1' : client.publish(topic+'/alarm', 'OPVShort' , 0)
+            if values[0][8] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too low' , 0)
+            if values[0][9] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too high' , 0)
+            if values[0][10] == '1' : client.publish(topic+'/alarm', flt + ' : Over temperature' , 0)
+            if values[0][11] == '1' : client.publish(topic+'/alarm', flt + ' : Fan locked' , 0)
+            if values[0][12] == '1' : client.publish(topic+'/alarm', flt + ' : Battery voltage high' , 0) 
+            if values[0][13] == '1' : client.publish(topic+'/alarm', 'Warning : Battery low alarm' , 0)
+            if values[0][14] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
+            if values[0][15] == '1' : client.publish(topic+'/alarm', 'Warning : Battery under shutdown' , 0)
+            if values[0][16] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
+            if values[0][17] == '1' : client.publish(topic+'/alarm', flt + ' : Over load' , 0)
+            if values[0][18] == '1' : client.publish(topic+'/alarm', 'Warning : Eeprom fault' , 0)
+            if values[0][19] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Over Current' , 0)
+            if values[0][20] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Soft Fail' , 0)
+            if values[0][21] == '1' : client.publish(topic+'/alarm', 'Fault : Self Test Fail' , 0)
+            if values[0][22] == '1' : client.publish(topic+'/alarm', 'Fault : OP DC Voltage Over' , 0) 
+            if values[0][23] == '1' : client.publish(topic+'/alarm', 'Fault : Bat Open' , 0)
+            if values[0][24] == '1' : client.publish(topic+'/alarm', 'Fault : Current Sensor Fail' , 0)
+            if values[0][25] == '1' : client.publish(topic+'/alarm', 'Fault : Battery Short' , 0)
+            if values[0][26] == '1' : client.publish(topic+'/alarm', 'Warning : Power limit' , 0)
+            if values[0][27] == '1' : client.publish(topic+'/alarm', 'Warning : PV voltage high' , 0)
+            if values[0][28] == '1' : client.publish(topic+'/alarm', 'Warning : MPPT overload fault' , 0)
+            if values[0][29] == '1' : client.publish(topic+'/alarm', 'Warning : MPPT overload warning' , 0)
+            if values[0][30] == '1' : client.publish(topic+'/alarm', 'Warning : Battery too low to charge' , 0)
+            if values[0][31] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
+            if values[0][32] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)  
  
-else:
-    #print('QPIWS - COMM ERROR')
-    pass
+        else:
+            #print('QPIWS - COMM ERROR')
+            pass
     
