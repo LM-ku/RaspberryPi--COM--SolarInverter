@@ -44,7 +44,7 @@ source_priority = 'xxx'                            # (SOL/UTI/SBU)
 charger_priority = 'xxx'                           # (UTI/SOL/SOL+UTI/OnlySOL)	
 mode = 'x'                                       # (P,S,L,B,F,H)				
 load = 'xx'					
-batt_recharge voltage	= 'xx.xx'	
+batt_recharge_voltage	= 'xx.xx'	
 batt_under_voltage	=	'xx.xx'		
 batt_redischarge_voltage =	'xx.xx'
 
@@ -90,19 +90,19 @@ PSDV = {'40.0':'\x50\x53\x44\x56\x34\x30\x2E\x30  <crc> \x0D',  # Set battery un
         '44.0':'\x50\x53\x44\x56\x34\x34\x2E\x30  <crc> \x0D',  # Set battery under voltage to 44.0 V
         '45.0':'\x50\x53\x44\x56\x34\x35\x2E\x30  <crc> \x0D',  # Set battery under voltage to 45.0 V
         '46.0':'\x50\x53\x44\x56\x34\x36\x2E\x30  <crc> \x0D',  # Set battery under voltage to 46.0 V
-        '47.0':'\x50\x53\x44\x56\x34\x37\x2E\x30  <crc> \x0D'   # Set battery under voltage to 47.0 V
+        '47.0':'\x50\x53\x44\x56\x34\x37\x2E\x30  <crc> \x0D',  # Set battery under voltage to 47.0 V
         '48.0':'\x50\x53\x44\x56\x34\x38\x2E\x30  <crc> \x0D'   # Set battery under voltage to 48.0 V
         }
-PBDV = {'48.0':'\x50\x42\x44\x56\x34\x38\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 48.0 V
+PBDV = {'48.0':'\x50\x42\x44\x56\x34\x38\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 48.0 V
         '49.0':'\x50\x53\x44\x56\x34\x39\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 49.0 V
         '50.0':'\x50\x53\x44\x56\x35\x30\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 50.0 V
         '51.0':'\x50\x53\x44\x56\x35\x31\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 51.0 V
         '52.0':'\x50\x53\x44\x56\x35\x32\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 52.0 V
         '53.0':'\x50\x53\x44\x56\x35\x33\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 53.0 V
         '54.0':'\x50\x53\x44\x56\x35\x34\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 54.0 V
-        '55.0':'\x50\x53\x44\x56\x35\x35\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 55.0 V
-        '56.0':'\x50\x53\x44\x56\x35\x36\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 56.0 V
-        '57.0':'\x50\x53\x44\x56\x35\x37\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 57.0 V
+        '55.0':'\x50\x53\x44\x56\x35\x35\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 55.0 V
+        '56.0':'\x50\x53\x44\x56\x35\x36\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 56.0 V
+        '57.0':'\x50\x53\x44\x56\x35\x37\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 57.0 V
         '58.0':'\x50\x53\x44\x56\x35\x38\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 58.0 V        
         }
         
@@ -316,7 +316,7 @@ client.loop_start()
 
 time_sta = time.time + set_time
 
-while True
+while True :
 
     if (time.time - time_sta) >= set_time :
         time_sta = time.time
@@ -337,7 +337,7 @@ while True
             ac_load = int(values[0][33:35])
             bus_voltage = int(values[0][37:39])
             batt_voltage = float(values[0][41:45])
-            batt_charging = float(values[0][47:49])/10.0)
+            batt_charging = float(values[0][47:49]/10.0)
             batt_capacity = int(values[0][51:53])
             temp_inverter = int(values[0][55:58])
             pv_current = int(values[0][60:63])
@@ -441,7 +441,7 @@ while True
  
             flt = 'Warning'
             if values[0][1] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
-            if values[0][2] == '1' : flt ='Fault' ; client.publish(topic+'/alarm', 'Inverter fault' , 0)
+            if values[0][2] == '1' : flt = 'Fault' ; client.publish(topic+'/alarm', 'Inverter fault' , 0)
             if values[0][3] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Over' , 0)
             if values[0][4] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Under' , 0)
             if values[0][5] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Soft Fail' , 0)
@@ -449,14 +449,14 @@ while True
             if values[0][7] == '1' : client.publish(topic+'/alarm', 'OPVShort' , 0)
             if values[0][8] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too low' , 0)
             if values[0][9] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too high' , 0)
-            if values[0][10] == '1' : client.publish(topic+'/alarm', flt + ' : Over temperature' , 0)
-            if values[0][11] == '1' : client.publish(topic+'/alarm', flt + ' : Fan locked' , 0)
-            if values[0][12] == '1' : client.publish(topic+'/alarm', flt + ' : Battery voltage high' , 0) 
+            if values[0][10] == '1' : client.publish(topic+'/alarm', flt+' : Over temperature' , 0)
+            if values[0][11] == '1' : client.publish(topic+'/alarm', flt+' : Fan locked' , 0)
+            if values[0][12] == '1' : client.publish(topic+'/alarm', flt+' : Battery voltage high' , 0) 
             if values[0][13] == '1' : client.publish(topic+'/alarm', 'Warning : Battery low alarm' , 0)
             if values[0][14] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
             if values[0][15] == '1' : client.publish(topic+'/alarm', 'Warning : Battery under shutdown' , 0)
             if values[0][16] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
-            if values[0][17] == '1' : client.publish(topic+'/alarm', flt + ' : Over load' , 0)
+            if values[0][17] == '1' : client.publish(topic+'/alarm', flt+' : Over load' , 0)
             if values[0][18] == '1' : client.publish(topic+'/alarm', 'Warning : Eeprom fault' , 0)
             if values[0][19] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Over Current' , 0)
             if values[0][20] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Soft Fail' , 0)
