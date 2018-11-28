@@ -19,7 +19,7 @@ ser = serial.Serial(
 
 # ВЫХОДНЫЕ ПАРАМЕТРЫ ИНВЕРТОРА
 
-grid_voltage = 0.0                              # напряжение сети xxx.x, V
+grid_voltage = 0.0                            # напряжение сети xxx.x, V
 grid_frequency = 0.0                            # частота сети хх.х, Hz
 ac_voltage = 0.0                                # выходное напряжение инвертора ххх.х, V
 ac_frequency = 0.0                              # частота на выходе инвертора хх.х, Hz
@@ -32,31 +32,21 @@ batt_charging = 0
 batt_capacity = 0                               # емкость батареи xxx, %
 temp_inverter = 0                               # температура инвертора xxxx, T
 pv_current = 0                                  # выходной ток солнечных панелей xxxx, A
-pv_voltage                                      # выходное напряжение солнечных панелей xxx.x, V
-pv_power                                        # выходная солнечная мощность xxxx, W
-scc_voltage                                     # напряжение заряда от солнечных панелей xx.xx, V
-batt_discharge                                  # разрядный ток от аккумулятора ххх, А
+pv_voltage = 0.0                                # выходное напряжение солнечных панелей xxx.x, V
+pv_power = 0                                    # выходная солнечная мощность xxxx, W
+scc_voltage = 0.0                               # напряжение заряда от солнечных панелей xx.xx, V
+batt_discharge = 0                              # разрядный ток от аккумулятора ххх, А
 
 # ИНФОРМАЦИЯ О СОСТОЯНИИ ИНВЕРТОРА
 
-source_range = ''                               # (APP/UPS)			
-source_priority = ''                            # (SOL/UTI/SBU)		
-charger_priority = ''                           # (UTIL/SOL/SOL+UTIL/OnlySOL)	
-mode = ''                                       # (P,S,L,B,F,H)				
-load_on = ''					
-charging = ''                                   # (SCC,AC,SCC+AC)		
-grid_rating_voltage = '000.0'                   # xxx.x, V
-grid_rating_current = '00.0'                    # xx.x, A		
-#		AC_rating_current				 xx.x	A		
-#		AC_rating_frequency			 	 xx.x	Hz
-#		AC_rating active_power	 	 	 xxxx	W
-#		BATT_rating_voltage				xx.xx	V
-#		BATT_recharge voltage			xx.xx	V	
-#		BATT_under_voltage				xx.xx	V		
-#		BATT_bulk_voltage				xx.xx	V		
-#		BATT_float_voltage				xx.xx	V
-
-
+source_range = 'xxx'                               # (APP/UPS)			
+source_priority = 'xxx'                            # (SOL/UTI/SBU)		
+charger_priority = 'xxx'                           # (UTI/SOL/SOL+UTI/OnlySOL)	
+mode = 'x'                                       # (P,S,L,B,F,H)				
+load = 'xx'					
+batt_recharge voltage	= 'xx.xx'	
+batt_under_voltage	=	'xx.xx'		
+batt_redischarge_voltage =	'xx.xx'
 
 # КОМАНДЫ ДЛЯ ИНВЕРТОРА + СRC16
 
@@ -332,36 +322,37 @@ while True
         time_sta = time.time
 
 # - выходные параметры инвертора
+# может быть '{:0>4.1f}'.format(float()) ???
 
         values = comm_inverter(QPIGS)
         if values[1] == str_crc16(values[0]) :
  
             status_rd = True
-            grid_voltage = values[0][1:5]
-            grid_frequency = values[0][7:10]
-            ac_voltage = values[0][12:16]
-            ac_frequency = values[0][18:21]
-            ac_va_power = values[0][23:26]
-            ac_w_power = values[0][28:31]
-            ac_load = values[0][33:35]
-            bus_voltage = values[0][37:39]
-            batt_voltage = values[0][41:45]
-            batt_charging = '{:0>4.1f}'.format(float(values[0][47:49])/10.0)
-            batt_capacity = values[0][51:53]
-            temp_inverter = values[0][55:58]
-            pv_current = values[0][60:63]
-            pv_voltage = values[0][65:69]
-            pv_power = '{:0>4.0f}'.format(float(pv_current) * float(pv_voltage))
-            scc_voltage = values[0][71:75]
-            batt_discharge = values[0][77:81]
+            grid_voltage = float(values[0][1:5])
+            grid_frequency = float(values[0][7:10])
+            ac_voltage = float(values[0][12:16])
+            ac_frequency = float(values[0][18:21])
+            ac_va_power = int(values[0][23:26])
+            ac_w_power = int(values[0][28:31])
+            ac_load = int(values[0][33:35])
+            bus_voltage = int(values[0][37:39])
+            batt_voltage = float(values[0][41:45])
+            batt_charging = float(values[0][47:49])/10.0)
+            batt_capacity = int(values[0][51:53])
+            temp_inverter = int(values[0][55:58])
+            pv_current = int(values[0][60:63])
+            pv_voltage = float(values[0][65:69])
+            pv_power = int(pv_current) * float(pv_voltage)
+            scc_voltage = float(values[0][71:75])
+            batt_discharge = int(values[0][77:81])
             device_status = values[0][83:90]
     
-            if values[0][86] == '1' : load = 'on' 
+            if device_status[4] == '1' : load = 'on' 
             else : load = 'off' 
      
-            if values[0][88:90] == '110' : charging = 'Charging on with SCC charge on'
-            elif values[0][88:90] == '101' : charging = 'Charging on with AC charge on'
-            elif values[0][88:90] == '111' : charging = 'Charging on with SCC and AC charge on',
+            if device_status[6:8] == '110' : charging = 'Charging on with SCC charge on'
+            elif device_status[6:8] == '101' : charging = 'Charging on with AC charge on'
+            elif device_status[6:8] == '111' : charging = 'Charging on with SCC and AC charge on',
             else : charging = 'unknow'
     
    
@@ -415,22 +406,22 @@ while True
    
             if values[0][72] == '0' : source_range = 'APP'
             elif values[0][72] == '1' : source_range = 'UPS' 
-            else : source_range = '---'
+            else : source_range = '???'
         
             if values[0][74] == '0' : source_priority = 'UTI'
             elif values[0][74] == '1' : source_priority = 'SOL'
             elif values[0][74] == '2' : source_priority = 'SBU'     
-            else : source_priority = '---' 
+            else : source_priority = '???' 
         
             if values[0][74] == '0' : charger_priority = 'UTI'
             elif values[0][74] == '1' : charger_priority = 'SOL'
             elif values[0][74] == '2' : charger_priority = 'SOL+UTI'
             elif values[0][74] == '3' : charger_priority = 'OnlySOL'       
-            else : charger_priority = '---'     
+            else : charger_priority = '???'     
       
-            batt_recharge_voltage = values[0][43:46]
-            batt_under_voltage = values[0][48:51] 
-            batt_redischarge_voltage = values[0][87:90]
+            batt_recharge_voltage = float(values[0][43:46])
+            batt_under_voltage = float(values[0][48:51])
+            batt_redischarge_voltage = float(values[0][87:90])
              
             client.publish(topic+'/info/source_range', source_range , 0)
             client.publish(topic+'/info/source_priority', source_priority , 0)
