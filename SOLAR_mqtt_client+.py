@@ -153,9 +153,9 @@ def crc16(message):
                 reg &= 0xffff           
                 #xor with the poly, this is the remainder
                 reg ^= poly
-            crc_h = reg / 0x100
+            crc_h = reg >> 8
             crc_l = reg & 0xFF    
-    return '\\' + str(hex(crc_h))[1:] + '\\' + str(hex(crc_l))[1:]
+    return chr(crc_h) + chr(crc_l)        
 
 
     
@@ -176,6 +176,7 @@ def crc16(message):
 def on_connect(client, userdata, flags, rc):
     #print('Connected...', 'CLIENT:', client, 'USERDATA:', userdata, 'FLAGS:', flags, 'CODE =', rc)
     client.subscribe(topic+'/#')
+
 
 # ПОЛУЧЕНИЕ КОМАНД ОТ MQTT-БРОКЕРА И ПЕРЕДАЧА ИНВЕРТОРУ
 # при получении от MQTT-брокера сообщения из топика, на который оформлена подписка
@@ -314,18 +315,18 @@ client.loop_start()
 # wait_for_publish == 0 - публикация вне зависимости от наличия связи с брокером, данные могут быть потеряны
 # wait_for_publish == 1 - публикация состоится только при наличии связи с брокером, все данные будут опубликованы после соединения с брокером
 
-time_sta = time.time + set_time
+time_sta = time.time() + set_time
 
 while True :
 
-    if (time.time - time_sta) >= set_time :
-        time_sta = time.time
+    if (time.time() - time_sta) >= set_time :
+        time_sta = time.time()
 
 # - выходные параметры инвертора
 # может быть '{:0>4.1f}'.format(float()) ???
 
         values = comm_inverter(QPIGS)
-        if values[1] == str_crc16(values[0]) :
+        if values[1] == crc16(values[0]) :
  
             status_rd = True
             grid_voltage = float(values[0][1:5])
@@ -337,7 +338,7 @@ while True :
             ac_load = int(values[0][33:35])
             bus_voltage = int(values[0][37:39])
             batt_voltage = float(values[0][41:45])
-            batt_charging = float(values[0][47:49]/10.0)
+            batt_charging = float(values[0][47:49])/10.0
             batt_capacity = int(values[0][51:53])
             temp_inverter = int(values[0][55:58])
             pv_current = int(values[0][60:63])
@@ -384,7 +385,7 @@ while True :
 # - режим работы инвертора
 
         values = comm_inverter(QMOD)
-        if values[1] == str_crc16(values[0]) :
+        if values[1] == crc16(values[0]) :
  
             if values[0] == '(P' : mode = 'Pover On mode'
             if values[0] == '(S' : mode = 'Standby mode'
@@ -437,11 +438,11 @@ while True :
 # - ошибки и неисправности инвертора
     
         values = comm_inverter(QPIWS)
-        if values[1] == str_crc16(values[0]) :
+        if values[1] == crc16(values[0]) :
  
             flt = 'Warning'
             if values[0][1] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
-            if values[0][2] == '1' : flt = 'Fault' ; client.publish(topic+'/alarm', 'Inverter fault' , 0)
+            if values[0][2] == '1' : flt ='Fault' ; client.publish(topic+'/alarm', 'Inverter fault' , 0)
             if values[0][3] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Over' , 0)
             if values[0][4] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Under' , 0)
             if values[0][5] == '1' : client.publish(topic+'/alarm', 'Fault : Bus Soft Fail' , 0)
@@ -449,14 +450,14 @@ while True :
             if values[0][7] == '1' : client.publish(topic+'/alarm', 'OPVShort' , 0)
             if values[0][8] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too low' , 0)
             if values[0][9] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter voltage too high' , 0)
-            if values[0][10] == '1' : client.publish(topic+'/alarm', flt+' : Over temperature' , 0)
-            if values[0][11] == '1' : client.publish(topic+'/alarm', flt+' : Fan locked' , 0)
-            if values[0][12] == '1' : client.publish(topic+'/alarm', flt+' : Battery voltage high' , 0) 
+            if values[0][10] == '1' : client.publish(topic+'/alarm', flt + ' : Over temperature' , 0)
+            if values[0][11] == '1' : client.publish(topic+'/alarm', flt + ' : Fan locked' , 0)
+            if values[0][12] == '1' : client.publish(topic+'/alarm', flt + ' : Battery voltage high' , 0) 
             if values[0][13] == '1' : client.publish(topic+'/alarm', 'Warning : Battery low alarm' , 0)
             if values[0][14] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
             if values[0][15] == '1' : client.publish(topic+'/alarm', 'Warning : Battery under shutdown' , 0)
             if values[0][16] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
-            if values[0][17] == '1' : client.publish(topic+'/alarm', flt+' : Over load' , 0)
+            if values[0][17] == '1' : client.publish(topic+'/alarm', flt + ' : Over load' , 0)
             if values[0][18] == '1' : client.publish(topic+'/alarm', 'Warning : Eeprom fault' , 0)
             if values[0][19] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Over Current' , 0)
             if values[0][20] == '1' : client.publish(topic+'/alarm', 'Fault : Inverter Soft Fail' , 0)
