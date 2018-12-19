@@ -1,4 +1,4 @@
-﻿import paho.mqtt.client as mqtt
+import paho.mqtt.client as mqtt
 #import serial
 import time
  
@@ -160,8 +160,8 @@ def crc16(message):
                 reg &= 0xffff           
                 #xor with the poly, this is the remainder
                 reg ^= poly
-            crc_h = reg >> 8
-            crc_l = reg & 0xFF    
+            crc_l = reg & 0xFF
+            crc_h = reg >> 8            
     return chr(crc_h) + chr(crc_l)
 
    
@@ -334,31 +334,31 @@ while True :
         if values[1] == crc16(values[0]) :
  
             status_rd = True
-            grid_voltage = float(values[0][1:5])
-            grid_frequency = float(values[0][7:10])
-            ac_voltage = float(values[0][12:16])
-            ac_frequency = float(values[0][18:21])
-            ac_va_power = int(values[0][23:26])
-            ac_w_power = int(values[0][28:31])
-            ac_load = int(values[0][33:35])
-            bus_voltage = int(values[0][37:39])
-            batt_voltage = float(values[0][41:45])
-            batt_charging = float(values[0][47:49])/10.0
-            batt_capacity = int(values[0][51:53])
-            temp_inverter = int(values[0][55:58])
-            pv_current = int(values[0][60:63])
-            pv_voltage = float(values[0][65:69])
+            grid_voltage = float(values[0][1:6])
+            grid_frequency = float(values[0][7:11])
+            ac_voltage = float(values[0][12:17])
+            ac_frequency = float(values[0][18:22])
+            ac_va_power = int(values[0][23:27])
+            ac_w_power = int(values[0][28:32])
+            ac_load = int(values[0][33:36])
+            bus_voltage = int(values[0][37:40])
+            batt_voltage = float(values[0][41:46])
+            batt_charging = float(values[0][47:50])/10.0
+            batt_capacity = int(values[0][51:54])
+            temp_inverter = int(values[0][55:59])
+            pv_current = int(values[0][60:64])
+            pv_voltage = float(values[0][65:70])
             pv_power = int(pv_current) * float(pv_voltage)
-            scc_voltage = float(values[0][71:75])
-            batt_discharge = int(values[0][77:81])
-            device_status = values[0][83:90]
+            scc_voltage = float(values[0][71:76])
+            batt_discharge = int(values[0][77:82])
+            device_status = values[0][83:91]
     
-            if device_status[4] == '1' : load = 'on' 
+            if device_status[3] == '1' : load = 'on' 
             else : load = 'off' 
      
-            if device_status[6:8] == '110' : charging = 'Charging on with SCC charge on'
-            elif device_status[6:8] == '101' : charging = 'Charging on with AC charge on'
-            elif device_status[6:8] == '111' : charging = 'Charging on with SCC and AC charge on',
+            if device_status[5:] == '110' : charging = 'Charging on with SCC charge on'
+            elif device_status[5:] == '101' : charging = 'Charging on with AC charge on'
+            elif device_status[5:] == '111' : charging = 'Charging on with SCC and AC charge on',
             else : charging = 'unknow'
     
    
@@ -381,11 +381,8 @@ while True :
             client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
             client.publish(topic+'/status/load', load, 0)
             client.publish(topic+'/status/charging', charging, 0)
-    
-     
-        else:
-            #print('QPIGS - COMM ERROR')
-            pass
+         
+        #else: print('QPIGS - COMM ERROR')
 
 # - режим работы инвертора
 
@@ -401,10 +398,8 @@ while True :
     
             client.publish(topic+'/info/source_priority', mode , 0)
 
-        else:
-            #print('QPIGS - COMM ERROR')
-            pass
-
+        #else: print('QPIGS - COMM ERROR')
+                
 # - состояние инвертора
    
         values = comm_inverter(QPIRI)
@@ -425,9 +420,9 @@ while True :
             elif values[0][74] == '3' : charger_priority = 'OnlySOL'       
             else : charger_priority = '???'     
       
-            batt_recharge_voltage = float(values[0][43:46])
-            batt_under_voltage = float(values[0][48:51])
-            batt_redischarge_voltage = float(values[0][87:90])
+            batt_recharge_voltage = float(values[0][43:47])
+            batt_under_voltage = float(values[0][48:52])
+            batt_redischarge_voltage = float(values[0][87:91])
              
             client.publish(topic+'/info/source_range', source_range , 0)
             client.publish(topic+'/info/source_priority', source_priority , 0)
@@ -436,10 +431,8 @@ while True :
             client.publish(topic+'/info/batt_under_voltage', batt_under_voltage , 0)
             client.publish(topic+'/info/batt_redischarge_voltage', batt_redischarge_voltage , 0)
       
-        else:
-            #print('QPIRI - COMM ERROR')
-            pass      
-
+        #else: print('QPIRI - COMM ERROR')
+            
 # - ошибки и неисправности инвертора
     
         values = comm_inverter(QPIWS)
@@ -479,6 +472,6 @@ while True :
             if values[0][31] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)
             if values[0][32] == '1' : client.publish(topic+'/alarm', 'Reserved' , 0)  
  
-        else:
-            #print('QPIWS - COMM ERROR')
-            pass
+        #else: print('QPIWS - COMM ERROR')
+           
+
