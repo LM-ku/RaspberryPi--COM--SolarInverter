@@ -122,27 +122,24 @@ while True :
         print('read serial :', rd_serial)
         print('       data =', data, '  crc =', crc)
         
-         if data == 'QMOD':
-            if (qmod == '(P') & (ct >= 4): 
+         if data == 'QMOD' & (ct >= 4):
+            if qmod == '(P': 
                 qmod = '(S'
                 ct = 0
-            elif qmod == '(S') & (ct >= 4): 
+            elif qmod == '(S': 
                 qmod = '(L'
                 ct = 0
-            elif qmod == '(L') & (ct >= 4): 
+            elif qmod == '(L': 
                 qmod = '(B'
                 ct = 0
-            elif qmod == '(B') & (ct >= 4): 
+            elif qmod == '(B': 
                 qmod = '(F'
                 ct = 0
-            elif qmod == '(F') & (ct >= 4): 
+            elif qmod == '(F': 
                 qmod = '(H'
                 ct = 0
-            elif qmod == '(H') & (ct >= 4):
+            else:
                 qmod = '(P'
-                ct = 0
-            else : 
-                qmod = '(B'
                 ct = 0
             answer = qmod 
             ct =+ 1
