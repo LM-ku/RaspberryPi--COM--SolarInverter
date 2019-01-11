@@ -144,7 +144,8 @@ while True :
             else : 
                 qmod = '(B'
                 ct = 0
-            answer = qmod       
+            answer = qmod 
+            ct =+ 1
  
         if data == 'QPIGS':
             grid_voltage = 220.0 + random.uniform(-20, 20)
