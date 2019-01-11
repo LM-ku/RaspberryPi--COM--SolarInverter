@@ -108,6 +108,7 @@ def crc16(message):
 
 qmod = '(P'
 i = 0
+ct = 0
 
 # ПРОСЛУШИВАНИЕ СОМ-ПОРТА И ЭМУЛЯЦИЯ ОТВЕТА ИНВЕРТОРА
 
@@ -120,12 +121,43 @@ while True :
     if crc == crc16(data) :
         print('read serial :', rd_serial)
         print('       data =', data, '  crc =', crc)
+        
+         if data == 'QMOD':
+            if (qmod == '(P') & (ct >= 4): 
+                qmod = '(S'
+                ct = 0
+            elif qmod == '(S') & (ct >= 4): 
+                qmod = '(L'
+                ct = 0
+            elif qmod == '(L') & (ct >= 4): 
+                qmod = '(B'
+                ct = 0
+            elif qmod == '(B') & (ct >= 4): 
+                qmod = '(F'
+                ct = 0
+            elif qmod == '(F') & (ct >= 4): 
+                qmod = '(H'
+                ct = 0
+            elif qmod == '(H') & (ct >= 4):
+                qmod = '(P'
+                ct = 0
+            else : 
+                qmod = '(B'
+                ct = 0
+            answer = qmod       
  
         if data == 'QPIGS':
             grid_voltage = 220.0 + random.uniform(-20, 20)
             grid_frequence = 50.0 + random.uniform(-2, 2)
-            ac_output_voltage = 230.0 + random.uniform(-2, 2)
-            ac_output_frequnce = 50.0 + random.uniform(-1, 1)
+            
+            if qmod == '(B' : ac_output_voltage = 230.0 + random.uniform(-2, 2)
+            if qmod == '(L' : ac_output_voltage = grid_voltage
+            else : ac_voltage = 0.0
+        
+            if qmod == '(B' : ac_output_frequnce = 50.0 + random.uniform(-1, 1)
+            if qmod == '(L' : ac_output_frequnce = grid_frequency
+            else : ac_frequency = 0.0
+           
             output_load_percent = 75 + random.randint(-25, 25)
             ac_output_apparent_power = output_load_percent * 40
             ac_output_active_power = int(ac_output_apparent_power * 0.85)
@@ -153,25 +185,16 @@ while True :
                      +' {:0>3d}'.format(battery_capacity)\
                      +' {:0>4d}'.format(inverter_temperature)\
                      +' {:0>4d}'.format(pv_input_current)\
-                     +' {:0>4.1f}'.format(pv_input_voltage)\
+                     +' {:0>5.1f}'.format(pv_input_voltage)\
                      +' {:0>5.2f}'.format(scc_voltage)\
                      +' {:0>5d}'.format(discharge_current)\
                      + device_status\
                      +' 00 00 00000 100'
             
-        if data == 'QMOD':
-            if qmod == '(P' : qmod = '(S'
-            elif qmod == '(S' : qmod = '(L'
-            elif qmod == '(L' : qmod = '(B'
-            elif qmod == '(B' : qmod = '(F'
-            elif qmod == '(F' : qmod = '(H'
-            else : qmod = '(P'
-            answer = qmod
-            
-        if data == 'QPIRI':
-
-            
+        if data == 'QPIRI':            
             answer = '(230.0 21.7 230.0 50.0 21.7 5000 4000 48.0 46.0 42.0 56.4 54.0 0 10 010 1 0 0 6 01 0 0 54.0 0 1'
+            
+            
         if data == 'QPIWS':
 
             if i == 0b00000000000000000000000000000000 : i =+ 1
