@@ -108,7 +108,8 @@ def crc16(message):
 
 qmod = '(P'
 i = 0
-ct = 0
+ct_mode = 0
+ct_stat = 0
 
 # ПРОСЛУШИВАНИЕ СОМ-ПОРТА И ЭМУЛЯЦИЯ ОТВЕТА ИНВЕРТОРА
 
@@ -122,27 +123,27 @@ while True :
         print('read serial :', rd_serial)
         print('       data =', data, '  crc =', crc)
         
-         if data == 'QMOD' & (ct >= 4):
+         if data == 'QMOD' & (ct_mode >= 4):
             if qmod == '(P': 
                 qmod = '(S'
-                ct = 0
+                ct_mode = 0
             elif qmod == '(S': 
                 qmod = '(L'
-                ct = 0
+                ct_mode = 0
             elif qmod == '(L': 
                 qmod = '(B'
-                ct = 0
+                ct_mode = 0
             elif qmod == '(B': 
                 qmod = '(F'
-                ct = 0
+                ct_mode = 0
             elif qmod == '(F': 
                 qmod = '(H'
-                ct = 0
+                ct_mode = 0
             else:
                 qmod = '(P'
-                ct = 0
+                ct_mode = 0
             answer = qmod 
-            ct =+ 1
+            ct_mode =+ 1
  
         if data == 'QPIGS':
             grid_voltage = 220.0 + random.uniform(-20, 20)
