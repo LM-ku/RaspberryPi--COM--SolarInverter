@@ -14,63 +14,6 @@ ser = serial.Serial(
     timeout=1
 )
 
-# КОМАНДЫ ДЛЯ ИНВЕРТОРА + СRC16
-
-QPGS0 = '\x51\x50\x47\x53\x30\x3F\xDa\x0D'                      # Parallel Information inquiry（For 4K/5K）
-QPIGS = '\x51\x50\x49\x47\x53\xB7\xA9\x0D'                      # Device general status parameters inquiry
-QMCHGCR = '\x51\x4D\x43\x48\x47\x43\x52\xD8\x55\x0D'            # Enquiry selectable value about max charging current
-QMUCHGCR = '\x51\x4D\x55\x43\x48\x47\x43\x52\x26\x34\0D'        # Enquiry selectable value about max utility charging current
-QPIWS = '\x51\x50\x49\x57\x53\xB4\xDA\x0D'                      # Device Warning Status inquiry
-QMOD = '\x51\x4D\x4F\x44\x49\xC1\x0D'                           # Device Mode inquiry
-QDI = '\x51\x44\x49\x71\x1B\x0D'                                # The default setting value information
-QVFW = '\x51\x56\x46\x57\x62\x99\x0D'                           # Main CPU Firmware version inquiry
-QVFW2 = '\x51\x56\x46\x57\x32\xC3\xF5\x0D'                      # Another CPU Firmware version inquiry
-QPIRI = '\x51\x50\x49\x52\x49\xF8\x54\x0D'                      # Device Rating Information inquiry
-QFLAG = '\x51\x46\x4C\x41\x47\x98\x74\x0D'                      # Device flag status inquiry 
-# ACK = '\x41\x43\x4B\x39\x20\x0D'                                # Device response
-POP = {'UTI':'\x50\x4F\x50\x30\x30\xC2\x48\x0D',                # Setting device output source priority to UTI
-       'SOL':'\x50\x4F\x50\x30\x31\xD2\x69\x0D',                # Setting device output source priority to SOL
-       'SBU':'\x50\x4F\x50\x30\x32\xE2\x0B\x0D'                 # Setting device output source priority to SBU
-       }
-PCP = {'UTI':'\x50\x43\x50\x30\x30\x8D\x7A\x0D',                # Setting device charger priority to UTI first
-       'SOL':'\x50\x43\x50\x30\x31\x9D\x5B\x0D',                # Setting device charger priority to SOL first
-       'SOL+UTI':'\x50\x43\x50\x30\x32\xAD\x38\x0D',            # Setting device charger priority to SOL+UTI
-       'OnlySOL':'\x50\x43\x50\x30\x33\xBD\x19\x0D'             # Setting device charger priority to OnlySOL
-       }
-PGR = {'APP':'\x50\x47\x52\x30\x30\x29\xEB\x0D',                # Setting device grid working range to APP
-       'UPS':'\x50\x47\x52\x30\x31\x39\xCA\x0D'                 # Setting device grid working range to UPS
-       }                      
-PBCV = {'44.0':'\x50\x42\x43\x56\x34\x34\x2E\x30\xE6\xEB\x0D',  # Set battery re-charge voltage to 44.0 V
-        '45.0':'\x50\x42\x43\x56\x34\x35\x2E\x30\xD1\xDB\x0D',  # Set battery re-charge voltage to 45.0 V
-        '46.0':'\x50\x42\x43\x56\x34\x36\x2E\x30\x88\x8B\x0D',  # Set battery re-charge voltage to 46.0 V
-        '47.0':'\x50\x42\x43\x56\x34\x37\x2E\x30\xBF\xBB\x0D',  # Set battery re-charge voltage to 47.0 V
-        '48.0':'\x50\x42\x43\x56\x34\x38\x2E\x30\x93\x8A\x0D',  # Set battery re-charge voltage to 48.0 V
-        '49.0':'\x50\x42\x43\x56\x34\x39\x2E\x30\xA4\xBA\x0D',  # Set battery re-charge voltage to 49.0 V
-        '50.0':'\x50\x42\x43\x56\x35\x30\x2E\x30\x4C\x9F\x0D',  # Set battery re-charge voltage to 50.0 V
-        '51.0':'\x50\x42\x43\x56\x35\x31\x2E\x30\x7B\xAF\x0D'   # Set battery re-charge voltage to 51.0 V
-        }
-PSDV = {'40.0':'\x50\x53\x44\x56\x34\x30\x2E\x30  <crc> \x0D',  # Set battery under voltage to 40.0 V
-        '41.0':'\x50\x53\x44\x56\x34\x31\x2E\x30  <crc> \x0D',  # Set battery under voltage to 41.0 V
-        '42.0':'\x50\x53\x44\x56\x34\x32\x2E\x30  <crc> \x0D',  # Set battery under voltage to 42.0 V
-        '43.0':'\x50\x53\x44\x56\x34\x33\x2E\x30  <crc> \x0D',  # Set battery under voltage to 43.0 V
-        '44.0':'\x50\x53\x44\x56\x34\x34\x2E\x30  <crc> \x0D',  # Set battery under voltage to 44.0 V
-        '45.0':'\x50\x53\x44\x56\x34\x35\x2E\x30  <crc> \x0D',  # Set battery under voltage to 45.0 V
-        '46.0':'\x50\x53\x44\x56\x34\x36\x2E\x30  <crc> \x0D',  # Set battery under voltage to 46.0 V
-        '47.0':'\x50\x53\x44\x56\x34\x37\x2E\x30  <crc> \x0D',  # Set battery under voltage to 47.0 V
-        '48.0':'\x50\x53\x44\x56\x34\x38\x2E\x30  <crc> \x0D'   # Set battery under voltage to 48.0 V
-        }
-PBDV = {'48.0':'\x50\x42\x44\x56\x34\x38\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 48.0 V
-        '49.0':'\x50\x53\x44\x56\x34\x39\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 49.0 V
-        '50.0':'\x50\x53\x44\x56\x35\x30\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 50.0 V
-        '51.0':'\x50\x53\x44\x56\x35\x31\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 51.0 V
-        '52.0':'\x50\x53\x44\x56\x35\x32\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 52.0 V
-        '53.0':'\x50\x53\x44\x56\x35\x33\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 53.0 V
-        '54.0':'\x50\x53\x44\x56\x35\x34\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 54.0 V
-        '55.0':'\x50\x53\x44\x56\x35\x35\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 55.0 V
-        '56.0':'\x50\x53\x44\x56\x35\x36\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 56.0 V
-        '57.0':'\x50\x53\x44\x56\x35\x37\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 57.0 V
-        '58.0':'\x50\x53\x44\x56\x35\x38\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 58.0 V        
-        }
         
 
 def crc16(message):
@@ -106,10 +49,10 @@ def crc16(message):
             crc_h = reg >> 8            
     return chr(crc_h) + chr(crc_l)
 
-qmod = '(P'
-i = 0
-ct_mode = 0
+qmod == '(P'
+ct_qmod = 0
 ct_stat = 0
+ct_qpiws = 0
 
 # ПРОСЛУШИВАНИЕ СОМ-ПОРТА И ЭМУЛЯЦИЯ ОТВЕТА ИНВЕРТОРА
 
@@ -122,42 +65,38 @@ while True :
     if crc == crc16(data) :
         print('read serial :', rd_serial)
         print('       data =', data, '  crc =', crc)
-        
-         if data == 'QMOD' & (ct_mode >= 4):
-            if qmod == '(P': 
-                qmod = '(S'
-                ct_mode = 0
-            elif qmod == '(S': 
-                qmod = '(L'
-                ct_mode = 0
-            elif qmod == '(L': 
-                qmod = '(B'
-                ct_mode = 0
-            elif qmod == '(B': 
-                qmod = '(F'
-                ct_mode = 0
-            elif qmod == '(F': 
-                qmod = '(H'
-                ct_mode = 0
-            else:
-                qmod = '(P'
-                ct_mode = 0
-            answer = qmod 
-            ct_mode =+ 1
- 
+
+# - режим работы инвертора
+
+        if (data == 'QMOD') :
+            if (ct_qmod >= 4) :
+                if qmod == '(P': qmod = '(S' ; ct_qmod = 0
+                elif qmod == '(S': qmod = '(L' ; ct_qmod = 0
+                elif qmod == '(L': qmod = '(B' ; ct_qmod = 0
+                elif qmod == '(B': qmod = '(F' ; ct_qmod = 0
+                elif qmod == '(F': qmod = '(H' ; ct_qmod = 0
+                else: qmod = '(P' ; ct_qmod = 0 ; answer = qmod
+            ct_qmod =+ 1
+
+# - параметры инвертора
+
         if data == 'QPIGS':
             grid_voltage = 220.0 + random.uniform(-20, 20)
             grid_frequence = 50.0 + random.uniform(-2, 2)
             
-            if qmod == '(B' : ac_output_voltage = 230.0 + random.uniform(-2, 2)
-            if qmod == '(L' : ac_output_voltage = grid_voltage
-            else : ac_voltage = 0.0
-        
-            if qmod == '(B' : ac_output_frequnce = 50.0 + random.uniform(-1, 1)
-            if qmod == '(L' : ac_output_frequnce = grid_frequency
-            else : ac_frequency = 0.0
-           
             output_load_percent = 75 + random.randint(-25, 25)
+                    
+            if qmod == '(B' :
+                ac_output_voltage = 230.0 + random.uniform(-2, 2)
+                ac_output_frequnce = 50.0 + random.uniform(-1, 1)
+            if qmod == '(L' :
+                ac_output_voltage = grid_voltage
+                ac_output_frequnce = grid_frequency
+            else :
+                ac_voltage = 0.0
+                ac_frequency = 0.0
+                output_load_percent = 0
+                        
             ac_output_apparent_power = output_load_percent * 40
             ac_output_active_power = int(ac_output_apparent_power * 0.85)
             bus_voltage = 420 + random.randint(-5, 5)
@@ -190,18 +129,19 @@ while True :
                      + device_status\
                      +' 00 00 00000 100'
             
+# - состояние инвертора
+
         if data == 'QPIRI':            
             answer = '(230.0 21.7 230.0 50.0 21.7 5000 4000 48.0 46.0 42.0 56.4 54.0 0 10 010 1 0 0 6 01 0 0 54.0 0 1'
-            
-            
-        if data == 'QPIWS':
 
-            if i == 0b00000000000000000000000000000000 : i =+ 1
-            else : i = (i << 1) + 1
-            if i > 0b00111111111111111111111111111111 : i = 0
+# - ошибки и неисправности инвертора
+
+        if data == 'QPIWS':
+            ct_qpiws = (ct_qpiws << 1) + 1
+            if ct_qpiws > 0b00111111111111111111111111111111 : ct_qpiws = 0
             
-            answer ='({:0>32b}'.format(i)
-            
+            answer ='({:0>32b}'.format(ct_qpiws)
+             
         msg_wr = answer + crc16(answer)+'\x0D'
         print('write serial :', msg_wr)
         print('        data =', answer, '  crc =', msg_wr[-3:-1])
