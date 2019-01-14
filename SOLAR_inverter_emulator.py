@@ -1,80 +1,12 @@
 import paho.mqtt.client as mqtt
-import serial
+#import serial
 import time
  
 #broker = 'www.mqtt-dashboard.com'
 broker = 'localhost'
 topic = 'my_solar'
 
-# ОПРЕДЕЛЕНИЕ СОМ-ПОРТА ДЛЯ ОБМЕНА С ИНВЕРТОРОМ
 
-ser = serial.Serial(              
-    port='/dev/ttyAMA0',
-    baudrate = 2400,
-    parity=serial.PARITY_NONE,
-    stopbits=serial.STOPBITS_ONE,
-    bytesize=serial.EIGHTBITS,
-    timeout=1
-)
-
-# КОМАНДЫ + СRC16 ДЛЯ ПЕРЕДАЧИ В ИНВЕРТОР 
-
-QPGS0 = '\x51\x50\x47\x53\x30\x3F\xDa\x0D'                      # Parallel Information inquiry（For 4K/5K）
-QPIGS = '\x51\x50\x49\x47\x53\xB7\xA9\x0D'                      # Device general status parameters inquiry
-QMCHGCR = '\x51\x4D\x43\x48\x47\x43\x52\xD8\x55\x0D'            # Enquiry selectable value about max charging current
-QMUCHGCR = '\x51\x4D\x55\x43\x48\x47\x43\x52\x26\x34\x0D'       # Enquiry selectable value about max utility charging current
-QPIWS = '\x51\x50\x49\x57\x53\xB4\xDA\x0D'                      # Device Warning Status inquiry
-QMOD = '\x51\x4D\x4F\x44\x49\xC1\x0D'                           # Device Mode inquiry
-QID = '\x51\x49\x44\xD6\xEA\x0D'                                # The device serial number inquiry
-QDI = '\x51\x44\x49\x71\x1B\x0D'                                # The default setting value information
-QVFW = '\x51\x56\x46\x57\x62\x99\x0D'                           # Main CPU Firmware version inquiry
-QVFW2 = '\x51\x56\x46\x57\x32\xC3\xF5\x0D'                      # Another CPU Firmware version inquiry
-QPIRI = '\x51\x50\x49\x52\x49\xF8\x54\x0D'                      # Device Rating Information inquiry
-QFLAG = '\x51\x46\x4C\x41\x47\x98\x74\x0D'                      # Device flag status inquiry 
-# ACK = '\x41\x43\x4B\x39\x20\x0D'                                # Device response
-POP = {'UTI':'\x50\x4F\x50\x30\x30\xC2\x48\x0D',                # Setting device output source priority to UTI
-       'SOL':'\x50\x4F\x50\x30\x31\xD2\x69\x0D',                # Setting device output source priority to SOL
-       'SBU':'\x50\x4F\x50\x30\x32\xE2\x0B\x0D'                 # Setting device output source priority to SBU
-       }
-PCP = {'UTI':'\x50\x43\x50\x30\x30\x8D\x7A\x0D',                # Setting device charger priority to UTI first
-       'SOL':'\x50\x43\x50\x30\x31\x9D\x5B\x0D',                # Setting device charger priority to SOL first
-       'SOL+UTI':'\x50\x43\x50\x30\x32\xAD\x38\x0D',            # Setting device charger priority to SOL+UTI
-       'OnlySOL':'\x50\x43\x50\x30\x33\xBD\x19\x0D'             # Setting device charger priority to OnlySOL
-       }
-PGR = {'APP':'\x50\x47\x52\x30\x30\x29\xEB\x0D',                # Setting device grid working range to APP
-       'UPS':'\x50\x47\x52\x30\x31\x39\xCA\x0D'                 # Setting device grid working range to UPS
-       }                      
-PBCV = {'44.0':'\x50\x42\x43\x56\x34\x34\x2E\x30\xE6\xEB\x0D',  # Set battery re-charge voltage to 44.0 V
-        '45.0':'\x50\x42\x43\x56\x34\x35\x2E\x30\xD1\xDB\x0D',  # Set battery re-charge voltage to 45.0 V
-        '46.0':'\x50\x42\x43\x56\x34\x36\x2E\x30\x88\x8B\x0D',  # Set battery re-charge voltage to 46.0 V
-        '47.0':'\x50\x42\x43\x56\x34\x37\x2E\x30\xBF\xBB\x0D',  # Set battery re-charge voltage to 47.0 V
-        '48.0':'\x50\x42\x43\x56\x34\x38\x2E\x30\x93\x8A\x0D',  # Set battery re-charge voltage to 48.0 V
-        '49.0':'\x50\x42\x43\x56\x34\x39\x2E\x30\xA4\xBA\x0D',  # Set battery re-charge voltage to 49.0 V
-        '50.0':'\x50\x42\x43\x56\x35\x30\x2E\x30\x4C\x9F\x0D',  # Set battery re-charge voltage to 50.0 V
-        '51.0':'\x50\x42\x43\x56\x35\x31\x2E\x30\x7B\xAF\x0D'   # Set battery re-charge voltage to 51.0 V
-        }
-PSDV = {'40.0':'\x50\x53\x44\x56\x34\x30\x2E\x30  <crc> \x0D',  # Set battery under voltage to 40.0 V
-        '41.0':'\x50\x53\x44\x56\x34\x31\x2E\x30  <crc> \x0D',  # Set battery under voltage to 41.0 V
-        '42.0':'\x50\x53\x44\x56\x34\x32\x2E\x30  <crc> \x0D',  # Set battery under voltage to 42.0 V
-        '43.0':'\x50\x53\x44\x56\x34\x33\x2E\x30  <crc> \x0D',  # Set battery under voltage to 43.0 V
-        '44.0':'\x50\x53\x44\x56\x34\x34\x2E\x30  <crc> \x0D',  # Set battery under voltage to 44.0 V
-        '45.0':'\x50\x53\x44\x56\x34\x35\x2E\x30  <crc> \x0D',  # Set battery under voltage to 45.0 V
-        '46.0':'\x50\x53\x44\x56\x34\x36\x2E\x30  <crc> \x0D',  # Set battery under voltage to 46.0 V
-        '47.0':'\x50\x53\x44\x56\x34\x37\x2E\x30  <crc> \x0D',  # Set battery under voltage to 47.0 V
-        '48.0':'\x50\x53\x44\x56\x34\x38\x2E\x30  <crc> \x0D'   # Set battery under voltage to 48.0 V
-        }
-PBDV = {'48.0':'\x50\x42\x44\x56\x34\x38\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 48.0 V
-        '49.0':'\x50\x53\x44\x56\x34\x39\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 49.0 V
-        '50.0':'\x50\x53\x44\x56\x35\x30\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 50.0 V
-        '51.0':'\x50\x53\x44\x56\x35\x31\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 51.0 V
-        '52.0':'\x50\x53\x44\x56\x35\x32\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 52.0 V
-        '53.0':'\x50\x53\x44\x56\x35\x33\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 53.0 V
-        '54.0':'\x50\x53\x44\x56\x35\x34\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 54.0 V
-        '55.0':'\x50\x53\x44\x56\x35\x35\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 55.0 V
-        '56.0':'\x50\x53\x44\x56\x35\x36\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 56.0 V
-        '57.0':'\x50\x53\x44\x56\x35\x37\x2E\x30  <crc> \x0D',  # Set battery re-discharge voltage to 57.0 V
-        '58.0':'\x50\x53\x44\x56\x35\x38\x2E\x30  <crc> \x0D'   # Set battery re-discharge voltage to 58.0 V        
-        }
 
 mode = {'(P':'Pover On mode',
         '(S':'Standby mode',
@@ -96,9 +28,10 @@ charger_priority = 'UTI'
 batt_recharge_voltage = 44.0
 batt_under_voltage = 42.0
 batt_redischarge_voltage = 52.0
-i = 0
-ct_mode = 0
+
+ct_qmod = 0
 ct_stat = 0
+ct_qpiws = 0
 ct_load = 0
 ct_charge = 0
 
@@ -134,24 +67,6 @@ def crc16(message):
             crc_h = reg >> 8
             crc_l = reg & 0xFF    
     return chr(crc_h) + chr(crc_l)        
-
-
-def comm_inverter(msg_wr):
-
-# ОБМЕН С ИНВЕРТОРОМ ЧЕРЕЗ COM-ПОРТ
-# msg_wr - строка данных для передачи инвертору через СОМ-порт
-# data - строка данных, полученных от инвертора через СОМ-порт (без CRC и \r)
-# crc - 2 символа, соответствующие CRC16 для данных, полученных от инвертора через СОМ-порт
-# функция возвращает кортеж вида : <data>, <length>, <сrc> 
-
-    ser.write(bytes(msg_wr, 'utf-8'))
-    time.sleep(0.5)
-    msg_rd = ser.readline().decode()
-    data = msg_rd[:-3]
-    length = len(data)
-    crc = msg_rd[-3:-1]
-    if crc16(data) != crc : length = 0
-    return data, length, crc
 
 
 def on_connect(client, userdata, flags, rc):
@@ -272,13 +187,6 @@ def on_publish(client, userdata, mid):
 
 device_serial = 'xxxxxxxxxxxxxx'
 
-while device_serial == 'xxxxxxxxxxxxxx' :
-
-    input = comm_inverter(QID)
-    data = input[0]
-    length = input[1]
-    crc = input[2]
-    if (crc == crc16(data)) & (length == 15) : device_serial = data[1:]
 
 # КЛИЕНТ MQTT
 
@@ -309,33 +217,18 @@ while True :
         device_mode = 'unknow'
         comm_state = 'ok'  
        
-        if ct_mode >= 4:
-            if data == '(P': 
-                data = '(S'
-                ct_mode = 0
-            elif data == '(S': 
-                data = '(L'
-                ct_mode = 0
-            elif data == '(L': 
-                data = '(B'
-                ct_mode = 0
-            elif data == '(B': 
-                data = '(F'
-                ct_mode = 0
-            elif data == '(F': 
-                data = '(H'
-                ct_mode = 0
-            else:
-                data = '(P'
-                ct_mode = 0
-                
-            device_mode = mode[data]
-            ct_mode =+ 1
-
-
+        if (ct_qmod >= 4) :
+            if qmod == '(P': qmod = '(S' ; ct_qmod = 0
+            elif qmod == '(S': qmod = '(L' ; ct_qmod = 0
+            elif qmod == '(L': qmod = '(B' ; ct_qmod = 0
+            elif qmod == '(B': qmod = '(F' ; ct_qmod = 0
+            elif qmod == '(F': qmod = '(H' ; ct_qmod = 0
+            else: qmod = '(P' ; ct_qmod = 0 ; answer = qmod
+        ct_qmod =+ 1
+        
+        device_mode = mode[qmod]
         client.publish(topic+'/mode/mode', device_mode , 0)
         client.publish(topic+'/mode/QMOD_comm', comm_state , 0)
-
         
 # - параметры инвертора
 
@@ -401,31 +294,6 @@ while True :
         client.publish(topic+'/status/charging', charging, 0)
         client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
      
-
-# - режим работы инвертора
-
-        mode = 'unknow'
-        comm_state = 'ok'  
-
-        input = comm_inverter(QMOD)
-        data = input[0]
-        length = input[1]
-        crc = input[2]
-        if (crc == crc16(data)):
-            print(data, 'len =', length) 
-            if data == '(P' : mode = 'Pover On mode'
-            if data == '(S' : mode = 'Standby mode'
-            if data == '(L' : mode = 'Line mode'
-            if data == '(B' : mode = 'Battery mode'
-            if data == '(F' : mode = 'Fault mode'
-            if data == '(H' : mode = 'Pover saving mode'    
-    
-        else:
-            comm_state = 'err'
-            print('QMOD : COMM.ERROR')
-            
-        client.publish(topic+'/mode/mode', mode , 0)
-        client.publish(topic+'/mode/QMOD_comm', comm_state , 0)
 
 # - состояние инвертора
 
