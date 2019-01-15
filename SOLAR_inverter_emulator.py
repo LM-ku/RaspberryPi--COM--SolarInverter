@@ -1,7 +1,7 @@
 import paho.mqtt.client as mqtt
-#import serial
+import random
 import time
- 
+
 #broker = 'www.mqtt-dashboard.com'
 broker = 'localhost'
 topic = 'my_solar'
@@ -16,7 +16,7 @@ mode = {'(P':'Pover On mode',
         '(H':'Pover saving mode'
         }
 
-        
+
 
 set_time = 30                                                   # периодичность опроса инвертора xx, s
 cmd = ''
@@ -29,16 +29,20 @@ batt_recharge_voltage = 44.0
 batt_under_voltage = 42.0
 batt_redischarge_voltage = 52.0
 
+qmod ='(P'
+device_mode = 'unknow'
+load ='unknow'
+charging = 'unknow'
 ct_qmod = 0
 ct_stat = 0
 ct_qpiws = 0
 ct_load = 0
-ct_charge = 0
+ct_charging = 0
 
 def crc16(message):
-    
+
 # РАСЧЕТ СRC16 по алгоритму CRC-CCITT (XModem)
-# https://bytes.com/topic/python/insights/887357-python-check-crc-frame-crc-16-ccitt      
+# https://bytes.com/topic/python/insights/887357-python-check-crc-frame-crc-16-ccitt
 # CRC-16-CITT poly, the CRC sheme used by ymodem protocol
 # 16bit operation register, initialized to zeros
 # message - строка данных, для которой расчитывается CRC
@@ -47,7 +51,7 @@ def crc16(message):
     poly = 0x1021
     reg = 0
     #pad the end of the message with the size of the poly
-    message += '\x00\x00' 
+    message += '\x00\x00'
     #for each bit in the message
     for byte in message:
         mask = 0x80
@@ -55,18 +59,18 @@ def crc16(message):
             #left shift by one
             reg<<=1
             #input the next bit from the message into the right hand side of the op reg
-            if ord(byte) & mask:   
+            if ord(byte) & mask:
                 reg += 1
             mask>>=1
             #if a one popped out the left of the reg, xor reg w/poly
-            if reg > 0xffff:            
+            if reg > 0xffff:
                 #eliminate any one that popped out the left
-                reg &= 0xffff           
+                reg &= 0xffff
                 #xor with the poly, this is the remainder
                 reg ^= poly
             crc_h = reg >> 8
-            crc_l = reg & 0xFF    
-    return chr(crc_h) + chr(crc_l)        
+            crc_l = reg & 0xFF
+    return chr(crc_h) + chr(crc_l)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -76,12 +80,12 @@ def on_connect(client, userdata, flags, rc):
 # userdata - выходная переменная ...
 # flags - выходная переменная ...
 # rc - выходная переменная - код подключения:
-#      0: Connection successful 
-#      1: Connection refused - incorrect protocol version 
-#      2: Connection refused - invalid client identifier 
-#      3: Connection refused - server unavailable 
-#      4: Connection refused - bad username or password 
-#      5: Connection refused - not authorised 
+#      0: Connection successful
+#      1: Connection refused - incorrect protocol version
+#      2: Connection refused - invalid client identifier
+#      3: Connection refused - server unavailable
+#      4: Connection refused - bad username or password
+#      5: Connection refused - not authorised
 #      6-255: Currently unused.
 
     #print('Connected...', 'CLIENT:', client, 'USERDATA:', userdata, 'FLAGS:', flags, 'CODE =', rc)
@@ -98,28 +102,28 @@ def on_message(client, userdata, msg):
 #        msg.payload - тело сообщения
 #        msg.qos - "качество обслуживания"
 # при получении от MQTT-брокера сообщения из топика, на который оформлена подписка
-# полученное сообщение интерпретируется, как команда для передачи инвертору 
+# полученное сообщение интерпретируется, как команда для передачи инвертору
 # команда передается инвертору через СОМ-порт
-# полученное от инвертора подтверждение от инвертора публикуется на MQTT-брокере  
+# полученное от инвертора подтверждение от инвертора публикуется на MQTT-брокере
 
     #print('Received message...', 'CLIENT:', client, 'USERDATA:', userdata, 'TOPIC:', msg.topic, 'MESSAGE:', msg.payload, 'QoS =', msg.qos)
-   
+
     value = msg.payload.decode()
     set_value = '{:0>4.1f}'.format(float(value))
     if msg.topic == topic+'/set/period_s':                              # период опроса инвертора, s
             #print('During :', value)
-            set_time = int(value)  
-       
+            set_time = int(value)
+
     if info_rd :                                                        # если информация от инвертора уже была получена
         if [msg.topic == topic+'/set/device_source_range' and           # 'PGR'+<value>+<crc16>
             ((value == 'APP' and source_range != 'APP') or
-             (value == 'UPS' and source_range != 'UPS'))] :             
+             (value == 'UPS' and source_range != 'UPS'))] :
             #print('SET_source_range :', value)
             source_range = value
             set_source_range = True
             #print('SETTTING device_source_range OK')
             client.publish(topic+'/ack/device_source_range', set_source_range, 0)
-                             
+
         elif [msg.topic == topic+'/set/source_priority' and             # 'POP'+<value>+<crc16>
               ((value == 'UTI' and source_priority != 'UTI') or
                (value == 'SOL' and source_priority != 'SOL') or
@@ -129,7 +133,7 @@ def on_message(client, userdata, msg):
             set_source_priority = True
             #print('SETTTING source_priority OK')
             client.publish(topic+'/ack/source_priority', set_source_range, 0)
-                                
+
         elif [msg.topic == topic+'/set/charger_priority' and              # 'PCP'+<cmd>+<crc16>
               ((value == 'UTI' and charger_priority != 'UTI') or
                (value == 'SOL' and charger_priority != 'SOL') or
@@ -139,7 +143,7 @@ def on_message(client, userdata, msg):
             charger_priority = value
             #print('SETTTING charger_priority OK')
             client.publish(topic+'/ack/charger_priority', set_charger_priority, 0)
-                
+
         elif [msg.topic == topic+'/set/batt_recharge_voltage' and         # 'PBCV'+<set_value>+<crc16>
               batt_recharge_voltage != set_value] :
             #print('SET_batt_recharge_voltage :', value)
@@ -151,31 +155,31 @@ def on_message(client, userdata, msg):
                 set_batt_recharge_voltage = False
                 #print('SET batt_recharge_voltage VAL WRONG')
             client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
-                    
+
         elif [msg.topic == topic+'/set/batt_under_voltage' and            # 'PSDV'+<set_value>+<crc16>
             batt_under_voltage != set_value] :
-            #print('SET_batt_under_voltage :', value) 
+            #print('SET_batt_under_voltage :', value)
             try:
                 batt_under_voltage = set_value
                 set_batt_under_voltage = True
                 #print('SETTTING batt_under_voltage OK')
             except:
                 set_batt_under_voltage = False
-                #print('SET batt_under_voltage VAL WRONG') 
-            client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
-                 
+                #print('SET batt_under_voltage VAL WRONG')
+            client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)
+
         elif [msg.topic == topic+'/set/batt_redischarge_voltage' and      # 'PBDV'+<set_value>+<crc16>
             batt_redischarge_voltage != set_value] :
-            #print('SET_batt_redischarge_voltage :', value) 
+            #print('SET_batt_redischarge_voltage :', value)
             try:
                 batt_redischarge_voltage = set_value
                 set_batt_redischarge_voltage = True
                 #print('SETTTING batt_redischarge_voltage OK')
             except:
                 set_batt_redischarge_voltage = False
-                #print('SET batt_redischarge_voltage VAL WRONG') 
-            client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
- 
+                #print('SET batt_redischarge_voltage VAL WRONG')
+            client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)
+
 
 # ПОДТВЕРЖДЕНИЕ ПУБЛИКАЦИИ НА MQTT-БРОКЕРЕ
 
@@ -195,7 +199,7 @@ client.on_connect = on_connect
 client.on_message = on_message
 client.on_publish = on_publish
 client.connect(broker, 1883, 60)
-client.loop_start()	
+client.loop_start()
 #client.loop_forever()
 
 
@@ -211,68 +215,83 @@ while True :
 
     if (time.time() - time_sta) >= set_time :
         time_sta = time.time()
-        
+
 # - режим работы инвертора
 
-        device_mode = 'unknow'
-        comm_state = 'ok'  
-       
+        comm_state = 'ok'
+
         if (ct_qmod >= 4) :
-            if qmod == '(P': qmod = '(S' ; ct_qmod = 0
-            elif qmod == '(S': qmod = '(L' ; ct_qmod = 0
-            elif qmod == '(L': qmod = '(B' ; ct_qmod = 0
-            elif qmod == '(B': qmod = '(F' ; ct_qmod = 0
-            elif qmod == '(F': qmod = '(H' ; ct_qmod = 0
-            else: qmod = '(P' ; ct_qmod = 0 ; answer = qmod
-        ct_qmod =+ 1
-        
+
+            if qmod == '(P': qmod = '(S'
+            elif qmod == '(S': qmod = '(L'
+            elif qmod == '(L': qmod = '(B'
+            elif qmod == '(B': qmod = '(F'
+            elif qmod == '(F': qmod = '(H'
+            else: qmod = '(P'
+            ct_qmod = 0
+
+        else : ct_qmod += 1
+
         device_mode = mode[qmod]
+        print('QMOD :',ct_qmod, qmod, device_mode)
         client.publish(topic+'/mode/mode', device_mode , 0)
         client.publish(topic+'/mode/QMOD_comm', comm_state , 0)
-        
+
 # - параметры инвертора
 
-        grid_voltage = 220.0 + random.uniform(-20, 20)
-        grid_frequency = 50.0 + random.uniform(-2, 2)
-        
-        if mode == 'Batt mode' : ac_voltage = 230.0 + random.uniform(-2, 2)
+        grid_voltage = '{:>4.1f}'.format(220.0 + random.uniform(-20, 20))
+        grid_frequency = '{:>3.1f}'.format(50.0 + random.uniform(-2, 2))
+
+        if mode == 'Batt mode' : ac_voltage = '{:>3.1f}'.format(230.0 + random.uniform(-2, 2))
         if mode == 'Line mode' : ac_voltage = grid_voltage
         else : ac_voltage = 0.0
-        
-        if mode == 'Batt mode' : ac_frequency = 50.0 + random.uniform(-1, 1)
+
+        if mode == 'Batt mode' : ac_frequency = '{:>3.1f}'.format(50.0 + random.uniform(-1, 1))
         if mode == 'Line mode' : ac_frequency = grid_frequency
         else : ac_frequency = 0.0
 
-        ac_load = 75 + random.randint(-25, 25)    
-        ac_va_power = output_load_percent * 40
-        ac_w_power = int(ac_output_apparent_power * 0.85)
-        bus_voltage = 420 + random.randint(-5, 5)
-        
-        
+        ac_load = int(75 + random.randint(-25, 25))
+        ac_va_power = int(ac_load * 40)
+        ac_w_power = int(ac_va_power * 0.85)
+        bus_voltage = '{:>3d}'.format(420 + random.randint(-5, 5))
+
+
         batt_voltage = 48.00 + random.uniform(-6, 6)
-        batt_charging = 100 + random.randint(-50, 50)
-        batt_capacity = int(100 * battery_voltage / 56.0)
+        batt_charging = '{:>4.1f}'.format(10 + random.uniform(-5, 5))
+        batt_capacity = int(100 * batt_voltage / 56.0)
         temp_inverter = 20 + random.randint(-5, 15)
         pv_current = 15 + random.randint(-10, 5)
         pv_voltage = 72.0 + random.uniform(-20, 10)
-        pv_power = pv_current * pv_voltage
-        scc_voltage = battery_voltage + 2
-        batt_discharge = 100 + random.randint(-20, 20)
+        pv_power = int(pv_current * pv_voltage)
+        pv_voltage = '{:>5.1f}'.format(pv_voltage)
 
-        
-         
-        device_status = data[83:91]
-    
-        if device_status[3] == '1' : load = 'on' 
-        if device_status[3] == '0' : load = 'off' 
-     
-        if device_status[5:] == '000' : charging = 'NOT charging'
-        if device_status[5:] == '110' : charging = 'Charging with SCC'
-        if device_status[5:] == '101' : charging = 'Charging with AC grid'
-        if device_status[5:] == '111' : charging = 'Charging with SCC + AC grid'
+        scc_voltage = '{:>5.2f}'.format(batt_voltage + 2)
+        batt_voltage = '{:>5.2f}'.format(batt_voltage)
+        batt_discharge = '{:>4.1f}'.format(50 + random.uniform(-40, 40))
 
 
-   
+        if ct_load >= 10 :
+
+            if load == 'off' : load = 'on'
+            else : load = 'off'
+            ct_load = 0
+
+        else : ct_load += 1
+
+        print('Load :', ct_load, load)
+
+        if ct_charging >= 5 :
+
+            if charging == 'NOT charging' : charging = 'Charging with SCC'
+            if charging == 'Charging with SCC' : charging = 'Charging with AC grid'
+            if charging == 'Charging with AC grid' : charging = 'Charging with SCC + AC grid'
+            else : charging = 'NOT charging'
+            ct_charging = 0
+
+        else: ct_charging += 1
+
+        print('Charging :', ct_charging, charging)
+
         client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
         client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
         client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
@@ -292,45 +311,12 @@ while True :
         client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
         client.publish(topic+'/status/load', load, 0)
         client.publish(topic+'/status/charging', charging, 0)
-        client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
-     
+        client.publish(topic+'/status/QPIGS_comm', comm_state, 0)
+
 
 # - состояние инвертора
 
-        source_range = 'unknow'
-        source_priority = 'unknow'
-        charger_priority = 'unknow'
-        batt_recharge_voltage = 0.0
-        batt_under_voltage = 0.0
-        batt_redischarge_voltage = 0.0
         comm_state = 'ok'
-         
-        input = comm_inverter(QPIRI)
-        data = input[0]
-        length = input[1]
-        crc = input[2]
-        if (crc == crc16(data)):
-            print(data, 'len =', length)
-            info_rd = True            
-            if data[72] == '0' : source_range = 'APP'
-            if data[72] == '1' : source_range = 'UPS' 
-        
-            if data[74] == '0' : source_priority = 'UTI'
-            if data[74] == '1' : source_priority = 'SOL'
-            if data[74] == '2' : source_priority = 'SBU'     
-        
-            if data[76] == '0' : charger_priority = 'UTI'
-            if data[76] == '1' : charger_priority = 'SOL'
-            if data[76] == '2' : charger_priority = 'SOL+UTI'
-            if data[76] == '3' : charger_priority = 'OnlySOL'       
-       
-            batt_recharge_voltage = float(data[43:47])
-            batt_under_voltage = float(data[48:52])
-            batt_redischarge_voltage = float(data[87:91])
-             
-        else:
-            comm_state = 'err'
-            print('QPIRI : COMM.ERROR')
 
         client.publish(topic+'/info/source_range', source_range , 0)
         client.publish(topic+'/info/source_priority', source_priority , 0)
@@ -342,7 +328,7 @@ while True :
          
 
 # - ошибки и неисправности инвертора
-    
+
         alarm_1 = 'none'
         alarm_2 = 'none'
         alarm_3 = 'none'
@@ -374,54 +360,50 @@ while True :
         alarm_29 = 'none'
         alarm_30 = 'none'
         alarm_31 = 'none'
-        alarm_32 = 'none'  
+        alarm_32 = 'none'
         comm_state = 'ok'
-        
-        input = comm_inverter(QPIWS)
-        data = input[0]
-        length = input[1]
-        crc = input[2]
-        if (crc == crc16(data)):
-            print(data, 'len =', length) 
-            alarm = 'Warning'
-            if data[1] == '1' : alarm_1 = 'Fault'
-            if data[2] == '1' : alarm_2 = 'Fault'; alarm = 'Fault'
-            if data[3] == '1' : alarm_3 = 'Fault'
-            if data[4] == '1' : alarm_4 = 'Fault'
-            if data[5] == '1' : alarm_5 = 'Fault'
-            if data[6] == '1' : alarm_6 = 'Fault'
-            if data[7] == '1' : alarm_7 = 'Fault'
-            if data[8] == '1' : alarm_8 = 'Fault'
-            if data[9] == '1' : alarm_9 = 'Fault'
-            if data[10] == '1' : alarm_10 = alarm
-            if data[11] == '1' : alarm_11 = alarm
-            if data[12] == '1' : alarm_12 = alarm 
-            if data[13] == '1' : alarm_13 = 'Warning'
-            if data[14] == '1' : alarm_14 = 'Fault'
-            if data[15] == '1' : alarm_15 = 'Warning'
-            if data[16] == '1' : alarm_16 = 'Fault'
-            if data[17] == '1' : alarm_17 = alarm
-            if data[18] == '1' : alarm_18 = 'Fault'
-            if data[19] == '1' : alarm_19 = 'Fault'
-            if data[20] == '1' : alarm_20 = 'Fault'
-            if data[21] == '1' : alarm_21 = 'Fault'
-            if data[22] == '1' : alarm_22 = 'Fault'
-            if data[23] == '1' : alarm_23 = 'Fault'
-            if data[24] == '1' : alarm_24 = 'Fault'
-            if data[25] == '1' : alarm_25 = 'Fault'
-            if data[26] == '1' : alarm_26 = 'Warning'
-            if data[27] == '1' : alarm_27 = 'Warning'
-            
-            if data[29] == '1' : alarm_28 = 'Warning'
-            if data[28] == '1' : alarm_28 = 'Fault'
-            
-            if data[30] == '1' : alarm_30 = 'Warning'
-            if data[31] == '1' : alarm_31 = 'Fault'
-            if data[32] == '1' : alarm_32 = 'Fault'  
+
+
+        ct_qpiws = (ct_qpiws << 1) + 1
+        if ct_qpiws > 0b00111111111111111111111111111111 : ct_qpiws = 0
+        data ='({:0>32b}'.format(ct_qpiws)
+        alarm = 'Warning'
+        if data[1] == '1' : alarm_1 = 'Fault'
+        if data[2] == '1' : alarm_2 = 'Fault'; alarm = 'Fault'
+        if data[3] == '1' : alarm_3 = 'Fault'
+        if data[4] == '1' : alarm_4 = 'Fault'
+        if data [5] == '1' : alarm_5 = 'Fault'
+        if data[6] == '1' : alarm_6 = 'Fault'
+        if data[7] == '1' : alarm_7 = 'Fault'
+        if data[8] == '1' : alarm_8 = 'Fault'
+        if data[9] == '1' : alarm_9 = 'Fault'
+        if data[10] == '1' : alarm_10 = alarm
+        if data[11] == '1' : alarm_11 = alarm
+        if data[12] == '1' : alarm_12 = alarm 
+        if data[13] == '1' : alarm_13 = 'Warning'
+        if data[14] == '1' : alarm_14 = 'Fault'
+        if data[15] == '1' : alarm_15 = 'Warning'
+        if data[16] == '1' : alarm_16 = 'Fault'
+        if data[17] == '1' : alarm_17 = alarm
+        if data[18] == '1' : alarm_18 = 'Fault'
+        if data[19] == '1' : alarm_19 = 'Fault'
+        if data[20] == '1' : alarm_20 = 'Fault'
+        if data[21] == '1' : alarm_21 = 'Fault'
+        if data[22] == '1' : alarm_22 = 'Fault'
+        if data[23] == '1' : alarm_23 = 'Fault'
+        if data[24] == '1' : alarm_24 = 'Fault'
+        if data[25] == '1' : alarm_25 = 'Fault'
+        if data[26] == '1' : alarm_26 = 'Warning'
+        if data[27] == '1' : alarm_27 = 'Warning'
+
+        if data[29] == '1' : alarm_28 = 'Warning'
+        if data[28] == '1' : alarm_28 = 'Fault'
+
+        if data[30] == '1' : alarm_30 = 'Warning'
+        if data[31] == '1' : alarm_31 = 'Fault'
+        if data[32] == '1' : alarm_32 = 'Fault'  
  
-        else:
-            comm_state = 'err' 
-            print('QPIWS : COMM.ERROR')
+
 
 #        client.publish(topic+'/alarm/alarm_1', alarm_1, 0)
         client.publish(topic+'/alarm/inverter', alarm_2, 0)
