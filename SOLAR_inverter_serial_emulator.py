@@ -49,7 +49,7 @@ def crc16(message):
             crc_h = reg >> 8            
     return chr(crc_h) + chr(crc_l)
 
-qmod == '(P'
+qmod = '(P'
 ct_qmod = 0
 ct_stat = 0
 ct_qpiws = 0
