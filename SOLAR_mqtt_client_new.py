@@ -281,7 +281,7 @@ def on_publish(client, userdata, mid):
     # print('Publish OK...', 'CLIENT:', client, 'USERDATA:', userdata, 'MID =', mid)
     return
 
-# СЕРИЙНЫЙ НОМЕР ИНВЕРТОРА
+# СЕРИЙНЫЙ НОМЕР ИНВЕРТОРА  (92931704100529)
 
 device_serial = 'xxxxxxxxxxxxxx'
 
@@ -291,7 +291,7 @@ while device_serial == 'xxxxxxxxxxxxxx' :
     data = input[0]
     length = input[1]
     crc = input[2]
-    if (crc == crc16(data)) & (length == 15) : device_serial = data[1:]
+    if (crc == crc16(data)) & (length >= 15) : device_serial = data[1:]
 
 # КЛИЕНТ MQTT
 
