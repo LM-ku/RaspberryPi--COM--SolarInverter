@@ -1,10 +1,11 @@
 # RaspberryPi--COM--SolarInverter
  Monitoring and control for solar inverter. Python-scrypt
 
- - HS_MS_MSX_RS232_Protocol_20140822_after_current_upgrade.pdf
+---------------------------------------------------------------
+- HS_MS_MSX_RS232_Protocol_20140822_after_current_upgrade.pdf
 ---------------------------------------------------------------
  Описание протокола обмена через COM-порт с солнечными гибридными инверторами типа PIP, MPP и другими аналогичными
-------------------------------------------------------------------------------------------------------------------------------------------
+
 
 
  - SOLAR_inverter_serial_emulator.py - 
