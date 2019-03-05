@@ -1,4 +1,5 @@
   RaspberryPi--COM--SolarInverter
+  
  Monitoring and control for solar inverter. Python-scrypt
 
 ----------------------------------------------------------------------------------------------------------------------------------------
