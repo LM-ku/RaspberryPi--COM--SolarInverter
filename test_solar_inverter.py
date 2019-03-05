@@ -68,7 +68,7 @@ set_time = 20.0                                                 # периоди
 cmd = ''
 info_rd = False
 ser_state = False
-file_name = r"C:\Users\Сергей\Documents\RaspberryPi\Test_Inverter\test_new.txt"
+file_name = r"C:\Users\Сергей\Documents\RaspberryPi\Test_Inverter\test.txt"
 
 
 # === РАСЧЕТ СRC16 по алгоритму CRC-CCITT (XModem) ===
