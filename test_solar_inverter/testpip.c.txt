@@ -6,11 +6,11 @@ int pipInputPointer = 0;
 
 // Structure to store the data from the PIP4048
 
-struct {char gridVoltage[16]; char gridFrequency[16]; char acOutput[16]; char acFrequency[16]; char acApparentPower[16];Â  Â  char acActivePower[16]; char loadPercent[16]; char busVoltage[16]; char batteryVoltage[16];Â  Â  char batteryChargeCurrent[16]; char batteryCharge[16]; char inverterTemperature[16]; char PVCurrent[16]; char PVVoltage[16];}Â  pipVals;
+struct {char gridVoltage[16]; char gridFrequency[16]; char acOutput[16]; char acFrequency[16]; char acApparentPower[16];Ã‚  Ã‚  char acActivePower[16]; char loadPercent[16]; char busVoltage[16]; char batteryVoltage[16];Ã‚  Ã‚  char batteryChargeCurrent[16]; char batteryCharge[16]; char inverterTemperature[16]; char PVCurrent[16]; char PVVoltage[16];}Ã‚  pipVals;
 
 // Some useful PIP commands
 
-structÂ  {uint8_t qpigs[5] = {'Q', 'P', 'I', 'G', 'S'}; uint8_t qpiws[5] = {'Q','P', 'I', 'W', 'S'};} pipCommands;
+structÃ‚  {uint8_t qpigs[5] = {'Q', 'P', 'I', 'G', 'S'}; uint8_t qpiws[5] = {'Q','P', 'I', 'W', 'S'};} pipCommands;
 
 int whichPIPCommand = 0, lastPIPCommand = 0; // which PIP values to read
 
