@@ -77,12 +77,14 @@ cmd = ''
 info_rd = False
 ser_state = False
 
-# === РАСЧЕТ СRC16 по алгоритму CRC-CCITT (XModem) ===
+
+# ================== РАСЧЕТ СRC16 ====================
+# процедура расчета CRC16 по алгоритму CRC-CCITT (XModem)
 # https://bytes.com/topic/python/insights/887357-python-check-crc-frame-crc-16-ccitt      
 # CRC-16-CITT poly, the CRC sheme used by ymodem protocol
 # 16bit operation register, initialized to zeros
 # message - строка данных, для которой расчитывается CRC
-# функция возвращает два байта СRC16 вида: b'\x00\x00'
+# функция возвращает два байта СRC16
 
 def crc16(message):
     poly = 0x1021
@@ -105,6 +107,7 @@ def crc16(message):
 
 
 # ======== ОБМЕН С ИНВЕРТОРОМ ЧЕРЕЗ COM-ПОРТ =========
+# инициализация СОМ-порта, передача запроса к инвертору и получение данных от инвертора
 # msg_wr - массив байт для передачи инвертору через СОМ-порт
 # length - количество байт, принятых от инвертора через СОМ-порт
 # data - строка данных, принятых от инвертора через СОМ-порт 
@@ -112,7 +115,9 @@ def crc16(message):
 # calc_crc - 2 байта CRC16, расчитанной для принятых данных
 # сrc_ok - критерий достоверности данных
 # функция возвращает кортеж вида : <data> , <length>, <сrc_ok>
-# если данные приняты с ошибкой, данные обнуляются
+# если при инициализации СОМ-порта произошла ошибка или
+# данные от инвертора приняты с ошибкой, 
+# выходные данные функции обнуляются
 
 def comm_inverter(msg_wr):
     
@@ -123,18 +128,18 @@ def comm_inverter(msg_wr):
     length = 0
     try:
         #print('инициализация СОМ-порта')
-# ==== тестирование скрипта на ПК ====
+# - тестирование скрипта на ПК
         ser = serial.Serial(
-            port='COM3',
+            port='COM3',         
             baudrate = 2400,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,
             timeout=1
         )
-# ====================================
+# ---------------------------------
 
-# ==== RaspberryPi ====
+# - RaspberryPi 
 #        ser = serial.Serial(              
 #            port='/dev/ttyAMA0',
 #            baudrate = 2400,
@@ -144,7 +149,7 @@ def comm_inverter(msg_wr):
 #            timeout=1
 #        )
 
-# Обработка ошибки инициализации COM-порта
+# - обработка ошибки инициализации COM-порта
 
     except serial.SerialException:  
         print('СОМ-порт не обнаружен\n\r')
@@ -152,9 +157,9 @@ def comm_inverter(msg_wr):
         length = 0
         сrc_ok = False
 
-# Успешная инициализация - работа с COM-портом
+# - успешная инициализация - работа с COM-портом
       
-      else: 
+    else: 
         #print('СОМ-порт ОК\n\r')
         ser.flushInput()  # очистить буфер ввода
         ser.flushOutput() # очистить буфер вывода
@@ -184,9 +189,9 @@ def comm_inverter(msg_wr):
             print('----- CRC error -----')
             data = ''    
 
- # - выходные переменные процедуры обмена с инвертором
+# - выходные переменные процедуры обмена с инвертором
  
-      finally:
+    finally:
         return data, length, сrc_ok
 
     
@@ -206,8 +211,10 @@ def comm_inverter(msg_wr):
 def on_connect(client, userdata, flags, rc):
     #print('Connected...', 'CLIENT:', client, 'USERDATA:', userdata, 'FLAGS:', flags, 'CODE =', rc)
     client.subscribe(topic+'/#')
-    client.subscribe('gpio/#')
+   
+    #client.subscribe('gpio/#')
 
+    
 
 # == ПОЛУЧЕНИЕ КОМАНД ОТ MQTT-БРОКЕРА И ПЕРЕДАЧА ИНВЕРТОРУ ==
 # client - выходная переменная идентификации клиента
@@ -233,61 +240,9 @@ def on_message(client, userdata, msg):
 
     if msg.topic == topic+'/set/period_s':                              
             set_time = int(cmd)
-            
-# - управление реле 1 
 
-    if msg.topic == 'gpio/set/channel_1' :
-        #print('SET_GPIO_channel_1 :', cmd)
-        set_gpio_ch_1 = True
-        if cmd == 'ON' :
-            GPIO.output(4, GPIO.HIGH)
-        elif cmd == 'OFF' :
-            GPIO.output(4, GPIO.LOW)
-        else:
-            set_gpio_ch_1 = False
-        client.publish('gpio/ack/channel_1', set_gpio_ch_1, 0)
-
-# - управление реле 2 
-
-    if msg.topic == 'gpio/set/channel_2' :
-        #print('SET_GPIO_channel_2 :', cmd)
-        set_gpio_ch_2 = True
-        if cmd == 'ON' :
-            GPIO.output(22, GPIO.HIGH)
-        elif cmd == 'OFF' :
-            GPIO.output(22, GPIO.LOW)
-        else:
-            set_gpio_ch_2 = False
-        client.publish('gpio/ack/channel_2', set_gpio_ch_2, 0)
-
-# - управление реле 3 
-
-    if msg.topic == 'gpio/set/channel_3' :
-        #print('SET_GPIO_channel_3 :', cmd)
-        set_gpio_ch_3 = True
-        if cmd == 'ON' :
-            GPIO.output(6, GPIO.HIGH)
-        elif cmd == 'OFF' :
-            GPIO.output(6, GPIO.LOW)
-        else:
-            set_gpio_ch_3 = False
-        client.publish('gpio/ack/channel_3', set_gpio_ch_3, 0)
-
-# - управление реле 4 
-
-    if msg.topic == 'gpio/set/channel_4' :
-        #print('SET_GPIO_channel_4 :', cmd)
-        set_gpio_ch_4 = True
-        if cmd == 'ON' :
-            GPIO.output(26, GPIO.HIGH)
-        elif cmd == 'OFF' :
-            GPIO.output(26, GPIO.LOW)
-        else:
-            set_gpio_ch_4 = False
-        client.publish('gpio/ack/channel_4', set_gpio_ch_4, 0)
-
-
-# если информация от инвертора уже была получена
+# передача команд к инвертеру возможна только в том случае,   
+# если информация от инвертора ранее уже была получена
 
     if info_rd :
 
@@ -296,8 +251,11 @@ def on_message(client, userdata, msg):
         if msg.topic == topic+'/set/device_source_range' and cmd != source_range :
             #print('SET_source_range :', cmd)
             try:
-                ack = comm_inverter(PGR[cmd])                       # 'PGR'+<cmd>+<crc16>
-                if ack[0] == '(ACK'  and ack[2] :
+                reply = comm_inverter(PGR[cmd])                       # 'PGR'+<cmd>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok : 
                     set_source_range = True
                     #print('SETTTING device source range OK')
                 else :
@@ -306,15 +264,19 @@ def on_message(client, userdata, msg):
             except:
                 set_source_range = False
                 #print('SETTTING device source range CMD WRONG')
-            client.publish(topic+'/ack/device_source_range', set_source_range, 0)
+            finally:   
+                client.publish(topic+'/ack/device_source_range', set_source_range, 0)
                              
 # - SET source_priority
 
         if msg.topic == topic+'/set/source_priority' and cmd != source_priority :
             #print('Set_source_priority :', cmd)
             try:
-                ack = comm_inverter(POP[cmd])                       # 'POP'+<cmd>+<crc16>
-                if ack[0] == '(ACK' and ack[2] :
+                reply = comm_inverter(POP[cmd])                       # 'POP'+<cmd>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok :
                     set_source_priority = True
                     #print('SETTTING source priority OK')
                 else :
@@ -323,15 +285,19 @@ def on_message(client, userdata, msg):
             except:
                 set_source_priority = False
                 #print('SETTTING source priority CMD WRONG')        
-            client.publish(topic+'/ack/source_priority', set_source_priority, 0)
+            finally:   
+                client.publish(topic+'/ack/source_priority', set_source_priority, 0)
                                 
 # - SET charger priority
 
         if msg.topic == topic+'/set/charger_priority' and cmd != charger_priority :
             #print('SET_charger_priority :', cmd)
             try:
-                ack = comm_inverter(PCP[cmd])                       # 'PCP'+<cmd>+<crc16>
-                if ack[0] == '(ACK'  and ack[2] :
+                reply = comm_inverter(PCP[cmd])                       # 'PCP'+<cmd>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok :
                     set_charger_priority = True
                     #print('SETTTING charger priority OK')
                 else :
@@ -339,16 +305,20 @@ def on_message(client, userdata, msg):
                     #print('SETTTING charger priority ERR')
             except:
                 set_charger_priority = False
-                #print('SETTTING charger priority CMD WRONG')         
-            client.publish(topic+'/ack/charger_priority', set_charger_priority, 0)
+                #print('SETTTING charger priority CMD WRONG')   
+            finally:   
+                client.publish(topic+'/ack/charger_priority', set_charger_priority, 0)
                 
 # - SET batt recharge voltage
 
         if msg.topic == topic+'/set/batt_recharge_voltage' and  batt_recharge_voltage != value :
             #print('SET_batt_recharge_voltage :', cmd)
             try:
-                ack = comm_inverter(PBCV[value])                # 'PBCV'+<value>+<crc16>
-                if ack[0] == '(ACK' and ack[2] :
+                reply = comm_inverter(PBCV[value])                # 'PBCV'+<value>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok :
                     set_batt_recharge_voltage = True
                     #print('SETTTING batt recharge voltage OK')
                 else :
@@ -357,15 +327,19 @@ def on_message(client, userdata, msg):
             except:
                 set_batt_recharge_voltage = False
                 #print('SET batt_recharge_voltage VAL WRONG')
-            client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
+            finally:   
+                client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
 
 # - SET batt under voltage
 
         if msg.topic == topic+'/set/batt_under_voltage' and  batt_under_voltage !=  value  :
             #print('SET_batt_under_voltage :', cmd) 
             try:
-                ack = comm_inverter(PSDV[value])            # 'PSDV'+<value>+<crc16>
-                if ack[0] == '(ACK' and ack[2] :
+                reply = comm_inverter(PSDV[value])            # 'PSDV'+<value>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok :
                     set_batt_under_voltage = True
                     #print('SETTTING batt under voltage OK')
                 else :
@@ -374,15 +348,19 @@ def on_message(client, userdata, msg):
             except:
                 set_batt_under_voltage = False
                 #print('SET batt under voltage VAL WRONG') 
-            client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
+            finally:   
+                client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
                  
 # - SET batt redischarge voltage
 
         if msg.topic == topic+'/set/batt_redischarge_voltage' and batt_redischarge_voltage !=  value :
             #print('SET_batt_redischarge_voltage :', value) 
             try:
-                ack = comm_inverter(PBDV[value])        # 'PBDV'+<value>+<crc16>
-                if ack[0] == '(ACK' and ack[2] :
+                reply = comm_inverter(PBDV[value])        # 'PBDV'+<value>+<crc16>
+                data = reply[0]
+                length = reply[1]
+                crc_ok = reply[2]
+                if data == '(ACK' and crc_ok :
                     set_batt_redischarge_voltage = True
                     #print('SETTTING batt redischarge voltage OK')
                 else :
@@ -391,7 +369,8 @@ def on_message(client, userdata, msg):
             except:
                 set_batt_redischarge_voltage = False
                 #print('SET batt_redischarge voltage VAL WRONG') 
-            client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
+            finally:   
+                client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
  
 
 # ===== ПОДТВЕРЖДЕНИЕ ПУБЛИКАЦИИ НА MQTT-БРОКЕРЕ =====
@@ -407,19 +386,12 @@ device_serial = 'xxxxxxxxxxxxxx'
 
 while device_serial == 'xxxxxxxxxxxxxx' :
     
-    input = comm_inverter(QID)
-    data = input[0]
-    length = input[1]
-    crc_ok = input[2]
+    reply = comm_inverter(QID)
+    data = reply[0]
+    length = reply[1]
+    crc_ok = reply[2]
     if crc_ok and length == 26 : device_serial = data[1:]
     print(device_serial)
-
-
-
-# НАСТРОЙКА GPIO
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup([4, 22, 6, 26], GPIO.OUT, initial=GPIO.LOW)
 
 
 # КЛИЕНТ MQTT
@@ -470,64 +442,68 @@ while True :
         charging = 'unknow'                             # источник зарядки батареи
         comm_state = 'ok'                               # ошибка обмена с инвертором
         
-        input = comm_inverter(QPIGS)
-        data = input[0]
-        length = input[1]
-        crc_ok = input[2]
-        if crc_ok and length == 110 :
-            print(data, 'len =', length)
-            grid_voltage = float(data[1:6])
-            grid_frequency = float(data[7:11])
-            ac_voltage = float(data[12:17])
-            ac_frequency = float(data[18:22])
-            ac_va_power = int(data[23:27])
-            ac_w_power = int(data[28:32])
-            ac_load = int(data[33:36])
-            bus_voltage = int(data[37:40])
-            batt_voltage = float(data[41:46])
-            batt_charging = float(data[47:50])/10.0
-            batt_capacity = int(data[51:54])
-            temp_inverter = int(data[55:59])
-            pv_current = int(data[60:64])
-            pv_voltage = float(data[65:70])
-            pv_power = '{:0>6.1f}'.format(float(pv_current * pv_voltage))
-            scc_voltage = float(data[71:76])
-            batt_discharge = int(data[77:82])
-            device_status = data[83:91]
+        reply = comm_inverter(QPIGS)
+        data = reply[0]
+        length = reply[1]
+        crc_ok = reply[2]
+        try:
+            if crc_ok and length == 110 :
+                print(data, 'len =', length)
+                grid_voltage = float(data[1:6])
+                grid_frequency = float(data[7:11])
+                ac_voltage = float(data[12:17])
+                ac_frequency = float(data[18:22])
+                ac_va_power = int(data[23:27])
+                ac_w_power = int(data[28:32])
+                ac_load = int(data[33:36])
+                bus_voltage = int(data[37:40])
+                batt_voltage = float(data[41:46])
+                batt_charging = float(data[47:50])/10.0
+                batt_capacity = int(data[51:54])
+                temp_inverter = int(data[55:59])
+                pv_current = int(data[60:64])
+                pv_voltage = float(data[65:70])
+                pv_power = '{:0>6.1f}'.format(float(pv_current * pv_voltage))
+                scc_voltage = float(data[71:76])
+                batt_discharge = int(data[77:82])
+                device_status = data[83:91]
     
-            if device_status[3] == '1' : load = 'on' 
-            if device_status[3] == '0' : load = 'off' 
+                if device_status[3] == '1' : load = 'on' 
+                if device_status[3] == '0' : load = 'off' 
      
-            if device_status[5:] == '000' : charging = 'NOT charging'
-            if device_status[5:] == '110' : charging = 'Charging with SCC'
-            if device_status[5:] == '101' : charging = 'Charging with AC grid'
-            if device_status[5:] == '111' : charging = 'Charging with SCC + AC grid'
+                if device_status[5:] == '000' : charging = 'NOT charging'
+                if device_status[5:] == '110' : charging = 'Charging with SCC'
+                if device_status[5:] == '101' : charging = 'Charging with AC grid'
+                if device_status[5:] == '111' : charging = 'Charging with SCC + AC grid'
 
-
-        else:
-            comm_state = 'err'
-            print('QPIGS : COMM.ERROR') 
-   
-        client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
-        client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
-        client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
-        client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
-        client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
-        client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
-        client.publish(topic+'/status/ac_load', ac_load, 0)
-        client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
-        client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
-        client.publish(topic+'/status/batt_charging', batt_charging, 0)
-        client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
-        client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
-        client.publish(topic+'/status/pv_current', pv_current, 0)
-        client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
-        client.publish(topic+'/status/pv_power', pv_power, 0)
-        client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
-        client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
-        client.publish(topic+'/status/load', load, 0)
-        client.publish(topic+'/status/charging', charging, 0)
-        client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
+            else:
+                comm_state = 'err'
+                print('QPIGS : COMM.ERROR') 
+               
+        except: 
+            print('QPIGS : Ошибка интерпретации данных') 
+          
+        finally:     
+            client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
+            client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
+            client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
+            client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
+            client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
+            client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
+            client.publish(topic+'/status/ac_load', ac_load, 0)
+            client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
+            client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
+            client.publish(topic+'/status/batt_charging', batt_charging, 0)
+            client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
+            client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
+            client.publish(topic+'/status/pv_current', pv_current, 0)
+            client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
+            client.publish(topic+'/status/pv_power', pv_power, 0)
+            client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
+            client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
+            client.publish(topic+'/status/load', load, 0)
+            client.publish(topic+'/status/charging', charging, 0)
+            client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
      
 
 # - режим работы инвертора
@@ -535,10 +511,10 @@ while True :
         mode = 'unknow'
         comm_state = 'ok'  
 
-        input = comm_inverter(QMOD)
-        data = input[0]
-        length = input[1]
-        crc_ok = input[2]
+        reply = comm_inverter(QMOD)
+        data = reply[0]
+        length = reply[1]
+        crc_ok = reply[2]
         if crc_ok and length == 5 :
             print(data, 'len =', length) 
             if data == '(P' : mode = 'Pover On mode'
@@ -565,10 +541,10 @@ while True :
         batt_redischarge_voltage = 0.0
         comm_state = 'ok'
          
-        input = comm_inverter(QPIRI)
-        data = input[0]
-        length = input[1]
-        crc_ok = input[2]
+        reply = comm_inverter(QPIRI)
+        data = reply[0]
+        length = reply[1]
+        crc_ok = reply[2]
         if crc_ok and length == 96 :
             print(data, 'len =', length)
             info_rd = True            
@@ -637,10 +613,10 @@ while True :
         alarm_32 = 'none'  
         comm_state = 'ok'
         
-        input = comm_inverter(QPIWS)
-        data = input[0]
-        length = input[1]
-        crc_ok = input[2]
+        reply = comm_inverter(QPIWS)
+        data = reply[0]
+        length = reply[1]
+        crc_ok = reply[2]
         if crc_ok and length == 36 :
             print(data, 'len =', length) 
             alarm = 'Warning'
@@ -717,6 +693,6 @@ while True :
         #client.publish(topic+'/alarm/alarm_32', alarm_32, 0)  
         client.publish(topic+'/alarm/QPIWS_comm', comm_state, 0)
 
-# ЗАВЕРШЕНИЕ ОПЕРАЦИЙ
 
-GPIO.cleanup()        
+
+     
