@@ -1,3 +1,5 @@
+#!/Usr/bin/env python3
+
 import paho.mqtt.client as mqtt
 import RPi.GPIO as GPIO
 import serial
@@ -114,13 +116,14 @@ def crc16(message):
 
 def comm_inverter(msg_wr):
     
-# - инициализация СОМ-порта ПК
+# - инициализация СОМ-порта 
     serial_state = False
     сrc_ok = False
     data = ''
     length = 0
     try:
         #print('инициализация СОМ-порта')
+# ==== тестирование скрипта на ПК ====
         ser = serial.Serial(
             port='COM3',
             baudrate = 2400,
@@ -129,8 +132,9 @@ def comm_inverter(msg_wr):
             bytesize=serial.EIGHTBITS,
             timeout=1
         )
+# ====================================
 
-# - инициализация СОМ-порта RaspberryPi
+# ==== RaspberryPi ====
 #        ser = serial.Serial(              
 #            port='/dev/ttyAMA0',
 #            baudrate = 2400,
@@ -140,25 +144,31 @@ def comm_inverter(msg_wr):
 #            timeout=1
 #        )
 
+# Обработка ошибки инициализации COM-порта
 
-    except serial.SerialException:
+    except serial.SerialException:  
         print('СОМ-порт не обнаружен\n\r')
         data = ''
         length = 0
         сrc_ok = False
-    else:
+
+# Успешная инициализация - работа с COM-портом
+      
+      else: 
         #print('СОМ-порт ОК\n\r')
-        ser.flushInput()
+        ser.flushInput()  # очистить буфер ввода
+        ser.flushOutput() # очистить буфер вывода
+        time.sleep(0.1)
 
 # - передача данных в СОМ-порт
 
-        ser.write(bytearray(msg_wr))
+        ser.write(bytearray(msg_wr))  
         #print('передача запроса в СОМ-порт')
         print('Write to INVERTER', bytes(msg_wr)) 
         time.sleep(0.5)
     
-# - прием данных из СОМ-порта
-
+# - прием данных из СОМ-порта и вычисление CRC
+  
         msg_rd = ser.readline()
         #print('\n\rприем данных из СОМ-порта')
         length = len(msg_rd)
@@ -173,7 +183,10 @@ def comm_inverter(msg_wr):
         else:        
             print('----- CRC error -----')
             data = ''    
-    finally:
+
+ # - выходные переменные процедуры обмена с инвертором
+ 
+      finally:
         return data, length, сrc_ok
 
     
