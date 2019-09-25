@@ -76,6 +76,7 @@ set_time = 30                                                   # периоди
 cmd = ''
 info_rd = False
 ser_state = False
+ser_init = False
 
 
 # ================== РАСЧЕТ СRC16 ====================
@@ -128,7 +129,7 @@ def comm_inverter(msg_wr):
     length = 0
     try:
         #print('инициализация СОМ-порта')
-# - тестирование скрипта на ПК
+# --- для тестирования скрипта на ПК ---
         ser = serial.Serial(
             port='COM3',         
             baudrate = 2400,
@@ -137,9 +138,8 @@ def comm_inverter(msg_wr):
             bytesize=serial.EIGHTBITS,
             timeout=1
         )
-# ---------------------------------
+# --------------------------------------
 
-# - RaspberryPi 
 #        ser = serial.Serial(              
 #            port='/dev/ttyAMA0',
 #            baudrate = 2400,
@@ -160,6 +160,7 @@ def comm_inverter(msg_wr):
 # - успешная инициализация - работа с COM-портом
       
     else: 
+        ser_init = True
         #print('СОМ-порт ОК\n\r')
         ser.flushInput()  # очистить буфер ввода
         ser.flushOutput() # очистить буфер вывода
@@ -193,7 +194,7 @@ def comm_inverter(msg_wr):
  
     finally:
         return data, length, сrc_ok
-
+    pass
     
 # == ПОДКЛЮЧЕНИЕ К MQTT-БРОКЕРУ И ПОДПИСКА НА ТОПИКИ ==
 # client - выходная переменная идентификации клиента
@@ -211,9 +212,7 @@ def comm_inverter(msg_wr):
 def on_connect(client, userdata, flags, rc):
     #print('Connected...', 'CLIENT:', client, 'USERDATA:', userdata, 'FLAGS:', flags, 'CODE =', rc)
     client.subscribe(topic+'/#')
-   
-    #client.subscribe('gpio/#')
-
+    pass
     
 
 # == ПОЛУЧЕНИЕ КОМАНД ОТ MQTT-БРОКЕРА И ПЕРЕДАЧА ИНВЕРТОРУ ==
@@ -231,11 +230,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     #print('Received message...', 'CLIENT:', client, 'USERDATA:', userdata, 'TOPIC:', msg.topic, 'MESSAGE:', msg.payload, 'QoS =', msg.qos)
     cmd = msg.payload.decode()    
-    try:
-        value = '{:0>4.1f}'.format(float(cmd))
-    except:
-        value = 00.0
-        
+            
 # - период опроса инвертора, s
 
     if msg.topic == topic+'/set/period_s':                              
@@ -311,67 +306,73 @@ def on_message(client, userdata, msg):
                 
 # - SET batt recharge voltage
 
-        if msg.topic == topic+'/set/batt_recharge_voltage' and  batt_recharge_voltage != value :
-            #print('SET_batt_recharge_voltage :', cmd)
-            try:
-                reply = comm_inverter(PBCV[value])                # 'PBCV'+<value>+<crc16>
-                data = reply[0]
-                length = reply[1]
-                crc_ok = reply[2]
-                if data == '(ACK' and crc_ok :
-                    set_batt_recharge_voltage = True
-                    #print('SETTTING batt recharge voltage OK')
-                else :
+        if msg.topic == topic+'/set/batt_recharge_voltage' :
+            value = '{:0>4.1f}'.format(float(cmd))  # интерпретировать <cmd>, как число в формате ХХ.Х
+            if batt_recharge_voltage != value :
+                #print('SET_batt_recharge_voltage :', cmd)
+                try:
+                    reply = comm_inverter(PBCV[value])                # 'PBCV'+<value>+<crc16>
+                    data = reply[0]
+                    length = reply[1]
+                    crc_ok = reply[2]
+                    if data == '(ACK' and crc_ok :
+                        set_batt_recharge_voltage = True
+                        #print('SETTTING batt recharge voltage OK')
+                    else :
+                        set_batt_recharge_voltage = False
+                        #print('SETTTING batt recharge voltage ERR')
+                except:
                     set_batt_recharge_voltage = False
-                    #print('SETTTING batt recharge voltage ERR')
-            except:
-                set_batt_recharge_voltage = False
-                #print('SET batt_recharge_voltage VAL WRONG')
-            finally:   
-                client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
+                    #print('SET batt_recharge_voltage VAL = WRONG')
+                finally:   
+                    client.publish(topic+'/ack/batt_recharge_voltage', set_batt_recharge_voltage, 0)
 
 # - SET batt under voltage
 
-        if msg.topic == topic+'/set/batt_under_voltage' and  batt_under_voltage !=  value  :
-            #print('SET_batt_under_voltage :', cmd) 
-            try:
-                reply = comm_inverter(PSDV[value])            # 'PSDV'+<value>+<crc16>
-                data = reply[0]
-                length = reply[1]
-                crc_ok = reply[2]
-                if data == '(ACK' and crc_ok :
-                    set_batt_under_voltage = True
-                    #print('SETTTING batt under voltage OK')
-                else :
+        if msg.topic == topic+'/set/batt_under_voltage' :
+            value = '{:0>4.1f}'.format(float(cmd))  # интерпретировать <cmd>, как число в формате ХХ.Х  
+            if batt_under_voltage !=  value :
+                #print('SET_batt_under_voltage :', cmd) 
+                try:
+                    reply = comm_inverter(PSDV[value])            # 'PSDV'+<value>+<crc16>
+                    data = reply[0]
+                    length = reply[1]
+                    crc_ok = reply[2]
+                    if data == '(ACK' and crc_ok :
+                        set_batt_under_voltage = True
+                        #print('SETTTING batt under voltage OK')
+                    else :
+                        set_batt_under_voltage = False
+                        #print('SETTTING batt under voltage ERR')
+                except:
                     set_batt_under_voltage = False
-                    #print('SETTTING batt under voltage ERR')
-            except:
-                set_batt_under_voltage = False
-                #print('SET batt under voltage VAL WRONG') 
-            finally:   
-                client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
+                    #print('SET batt under voltage VAL WRONG') 
+                finally:   
+                    client.publish(topic+'/ack/batt_under_voltage', set_batt_under_voltage, 0)   
                  
 # - SET batt redischarge voltage
 
-        if msg.topic == topic+'/set/batt_redischarge_voltage' and batt_redischarge_voltage !=  value :
-            #print('SET_batt_redischarge_voltage :', value) 
-            try:
-                reply = comm_inverter(PBDV[value])        # 'PBDV'+<value>+<crc16>
-                data = reply[0]
-                length = reply[1]
-                crc_ok = reply[2]
-                if data == '(ACK' and crc_ok :
-                    set_batt_redischarge_voltage = True
-                    #print('SETTTING batt redischarge voltage OK')
-                else :
+        if msg.topic == topic+'/set/batt_redischarge_voltage' :
+            value = '{:0>4.1f}'.format(float(cmd))  # интерпретировать <cmd>, как число в формате ХХ.Х    
+            if batt_redischarge_voltage !=  value :
+                #print('SET_batt_redischarge_voltage :', value) 
+                try:
+                    reply = comm_inverter(PBDV[value])        # 'PBDV'+<value>+<crc16>
+                    data = reply[0]
+                    length = reply[1]
+                    crc_ok = reply[2]
+                    if data == '(ACK' and crc_ok :
+                        set_batt_redischarge_voltage = True
+                        #print('SETTTING batt redischarge voltage OK')
+                    else :
+                        set_batt_redischarge_voltage = False
+                        #print('SETTTING batt redischarge voltage ERR')
+                except:
                     set_batt_redischarge_voltage = False
-                    #print('SETTTING batt redischarge voltage ERR')
-            except:
-                set_batt_redischarge_voltage = False
-                #print('SET batt_redischarge voltage VAL WRONG') 
-            finally:   
-                client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
- 
+                    #print('SET batt_redischarge voltage VAL WRONG') 
+                finally:   
+                    client.publish(topic+'/ack/batt_redischarge_voltage', set_batt_redischarge_voltage, 0)   
+    pass 
 
 # ===== ПОДТВЕРЖДЕНИЕ ПУБЛИКАЦИИ НА MQTT-БРОКЕРЕ =====
 
@@ -404,19 +405,17 @@ client.connect(broker, 1883, 60)
 client.loop_start()	
 
 
-
-
-# ОПРОС ИНВЕРТОРА И ПЕРЕДАЧА ДАННЫХ БРОКЕРУ (ПУБЛИКАЦИИ)
+# ОПРОС ИНВЕРТОРА И ПУБЛИКАЦИЯ ДАННЫХ У БРОКЕРА
 # publish(topic, payload, wait_for_publish)
 # wait_for_publish == 0 - публикация вне зависимости от наличия связи с брокером, данные могут быть потеряны
 # wait_for_publish == 1 - публикация состоится только при наличии связи с брокером, все данные будут опубликованы после соединения с брокером
 
-time_sta = time.time() - set_time
+time_pre = time.time() - set_time
 
 while True :
 
-    if (time.time() - time_sta) >= set_time :
-        time_sta = time.time()
+    if (time.time() - time_pre) >= set_time :
+        time_pre = time.time()
         
 # - параметры инвертора
 
@@ -446,8 +445,8 @@ while True :
         data = reply[0]
         length = reply[1]
         crc_ok = reply[2]
-        try:
-            if crc_ok and length == 110 :
+        if crc_ok and length == 110 :
+            try:
                 print(data, 'len =', length)
                 grid_voltage = float(data[1:6])
                 grid_frequency = float(data[7:11])
@@ -475,35 +474,34 @@ while True :
                 if device_status[5:] == '110' : charging = 'Charging with SCC'
                 if device_status[5:] == '101' : charging = 'Charging with AC grid'
                 if device_status[5:] == '111' : charging = 'Charging with SCC + AC grid'
-
-            else:
-                comm_state = 'err'
-                print('QPIGS : COMM.ERROR') 
-               
-        except: 
-            print('QPIGS : Ошибка интерпретации данных') 
-          
-        finally:     
-            client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
-            client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
-            client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
-            client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
-            client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
-            client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
-            client.publish(topic+'/status/ac_load', ac_load, 0)
-            client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
-            client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
-            client.publish(topic+'/status/batt_charging', batt_charging, 0)
-            client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
-            client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
-            client.publish(topic+'/status/pv_current', pv_current, 0)
-            client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
-            client.publish(topic+'/status/pv_power', pv_power, 0)
-            client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
-            client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
-            client.publish(topic+'/status/load', load, 0)
-            client.publish(topic+'/status/charging', charging, 0)
-            client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
+            except: 
+                comm_state = 'decryption error'
+        else:
+            comm_state = 'read error'
+            if ser_init : comm_state = 'COM-port not init'
+   
+        print('QPIGS : ', comm_state)
+    
+        client.publish(topic+'/status/grid_voltage', grid_voltage, 0)
+        client.publish(topic+'/status/grid_frequency', grid_frequency, 0)
+        client.publish(topic+'/status/ac_voltage', ac_voltage, 0)
+        client.publish(topic+'/status/ac_frequency', ac_frequency, 0)
+        client.publish(topic+'/status/ac_va_power', ac_va_power, 0)
+        client.publish(topic+'/status/ac_w_power', ac_w_power, 0)
+        client.publish(topic+'/status/ac_load', ac_load, 0)
+        client.publish(topic+'/status/bus_voltage', bus_voltage, 0)
+        client.publish(topic+'/status/batt_voltage', batt_voltage, 0)
+        client.publish(topic+'/status/batt_charging', batt_charging, 0)
+        client.publish(topic+'/status/batt_capacity', batt_capacity, 0)
+        client.publish(topic+'/status/temp_inverter', temp_inverter, 0)
+        client.publish(topic+'/status/pv_current', pv_current, 0)
+        client.publish(topic+'/status/pv_voltage', pv_voltage, 0)
+        client.publish(topic+'/status/pv_power', pv_power, 0)
+        client.publish(topic+'/status/scc_voltage', scc_voltage, 0)
+        client.publish(topic+'/status/batt_discharge', batt_discharge, 0)
+        client.publish(topic+'/status/load', load, 0)
+        client.publish(topic+'/status/charging', charging, 0)
+        client.publish(topic+'/status/QPIGS_comm', comm_state, 0)    
      
 
 # - режим работы инвертора
@@ -525,8 +523,10 @@ while True :
             if data == '(H' : mode = 'Pover saving mode'    
     
         else:
-            comm_state = 'err'
-            print('QMOD : COMM.ERROR')
+            comm_state = 'read error'
+            if ser_init : comm_state = 'COM-port not init'
+
+        print('QMOD : ', comm_state)
             
         client.publish(topic+'/mode/mode', mode , 0)
         client.publish(topic+'/mode/QMOD_comm', comm_state , 0)
@@ -565,8 +565,10 @@ while True :
             batt_redischarge_voltage = float(data[85:89])
              
         else:
-            comm_state = 'err'
-            print('QPIRI : COMM.ERROR')
+            comm_state = 'read error'
+            if ser_init : comm_state = 'COM-port not init'
+   
+        print('QPIRI : ', comm_state)
 
         client.publish(topic+'/info/source_range', source_range , 0)
         client.publish(topic+'/info/source_priority', source_priority , 0)
@@ -656,8 +658,10 @@ while True :
             if data[32] == '1' : alarm_32 = 'Fault'  
  
         else:
-            comm_state = 'err' 
-            print('QPIWS : COMM.ERROR')
+            comm_state = 'read error'
+            if ser_init : comm_state = 'COM-port not init'
+
+        print('QPIWS : ', comm_state) 
 
         #client.publish(topic+'/alarm/alarm_1', alarm_1, 0)
         client.publish(topic+'/alarm/inverter', alarm_2, 0)
