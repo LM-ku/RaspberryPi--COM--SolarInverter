@@ -6,7 +6,7 @@ import random
 # ОПРЕДЕЛЕНИЕ СОМ-ПОРТА ДЛЯ ОБМЕНА С ИНВЕРТОРОМ
 
 ser = serial.Serial(              
-    port='COM7',
+    port='COM3',
     baudrate = 2400,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
@@ -14,40 +14,39 @@ ser = serial.Serial(
     timeout=1
 )
 
-        
+answer = ''        
 
-def crc16(message):
-    
-# РАСЧЕТ СRC16 по алгоритму CRC-CCITT (XModem)
+# ================== РАСЧЕТ СRC16 ====================
+# процедура расчета CRC16 по алгоритму CRC-CCITT (XModem)
 # https://bytes.com/topic/python/insights/887357-python-check-crc-frame-crc-16-ccitt      
 # CRC-16-CITT poly, the CRC sheme used by ymodem protocol
 # 16bit operation register, initialized to zeros
 # message - строка данных, для которой расчитывается CRC
-# функция возвращает строку вида '\x00\x00', соответствующую 2-м символам СRC16
+# функция возвращает два байта СRC16
 
+def crc16(message):
     poly = 0x1021
     reg = 0
-    #pad the end of the message with the size of the poly
-    message += '\x00\x00' 
-    #for each bit in the message
-    for byte in message:
+    #message += b'\x00\x00'
+    message += '\x00\x00'
+    msg = message.encode('utf-8')
+    for byte in msg:
+    #for byte in message:    
         mask = 0x80
         while(mask > 0):
-            #left shift by one
             reg<<=1
-            #input the next bit from the message into the right hand side of the op reg
-            if ord(byte) & mask:   
+            if byte & mask:     
                 reg += 1
             mask>>=1
-            #if a one popped out the left of the reg, xor reg w/poly
             if reg > 0xffff:            
-                #eliminate any one that popped out the left
                 reg &= 0xffff           
-                #xor with the poly, this is the remainder
                 reg ^= poly
-            crc_l = reg & 0xFF
-            crc_h = reg >> 8            
-    return chr(crc_h) + chr(crc_l)
+    crc_h = reg >> 8
+    crc_l = reg & 0xFF                
+    return bytes([crc_h, crc_l])
+
+
+
 
 qmod = '(P'
 ct_qmod = 0
@@ -58,8 +57,10 @@ ct_qpiws = 0
 
 while True :
     
-    rd_serial = ser.readline().decode('utf-8')
-    data = rd_serial[:-3]
+    #rd_serial = ser.readline().decode('utf-8')
+    rd_serial = ser.readline()
+    data = rd_serial[:-3].decode('utf-8')
+    #data = rd_serial[:-3] 
     crc = rd_serial[-3:-1]
 
     if crc == crc16(data) :
@@ -93,8 +94,8 @@ while True :
                 ac_output_voltage = grid_voltage
                 ac_output_frequnce = grid_frequency
             else :
-                ac_voltage = 0.0
-                ac_frequency = 0.0
+                ac_output_voltage = 0.0
+                ac_output_frequnce = 0.0
                 output_load_percent = 0
                         
             ac_output_apparent_power = output_load_percent * 40
@@ -142,9 +143,11 @@ while True :
             
             answer ='({:0>32b}'.format(ct_qpiws)
              
-        msg_wr = answer + crc16(answer)+'\x0D'
-        print('write serial :', msg_wr)
-        print('        data =', answer, '  crc =', msg_wr[-3:-1])
-        ser.write(bytes(msg_wr, 'utf-8'))
+        print('wr :', answer.encode())
+        msg_wr = answer.encode() + crc16(answer) + b'\x0D'
+        print('          data =', answer, '  crc =', msg_wr[-3:-1])
+        #ser.write(bytes(msg_wr, 'utf-8'))
+        time.sleep(0.5) 
+        ser.write(bytearray(msg_wr)) 
 
     else : print('read serial...')
