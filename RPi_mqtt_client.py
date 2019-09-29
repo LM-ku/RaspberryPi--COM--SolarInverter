@@ -1,12 +1,11 @@
 #!/Usr/bin/env python3
 
 import paho.mqtt.client as mqtt
-#import RPi.GPIO as GPIO
 import serial
 import time
  
-broker = 'www.mqtt-dashboard.com'
-#broker = 'localhost'
+#broker = 'www.mqtt-dashboard.com'
+broker = 'localhost'
 topic = 'my_solar'
 
 
@@ -92,8 +91,10 @@ mqtt_connect = False
 def crc16(message):
     poly = 0x1021
     reg = 0
-    message += b'\x00\x00' 
-    for byte in message:
+    message += b'\x00\x00'
+    #msg = message.encode("utf-8")
+    msg = message
+    for byte in msg:
         mask = 0x80
         while(mask > 0):
             reg<<=1
@@ -135,24 +136,24 @@ def comm_inverter(msg_wr):
     try:
         #print('инициализация СОМ-порта')
 # --- для тестирования скрипта на ПК ---
-        ser = serial.Serial(
-            port='COM3',         
-            baudrate = 2400,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-            timeout=1
-        )
-# --------------------------------------
-
-#        ser = serial.Serial(              
-#            port='/dev/ttyAMA0',
+#        ser = serial.Serial(
+#            port='COM3',         
 #            baudrate = 2400,
 #            parity=serial.PARITY_NONE,
 #            stopbits=serial.STOPBITS_ONE,
 #            bytesize=serial.EIGHTBITS,
 #            timeout=1
 #        )
+# --------------------------------------
+
+        ser = serial.Serial(              
+            port='/dev/ttyAMA0',
+            baudrate = 2400,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+            timeout=1
+        )
 
 # - обработка ошибки инициализации COM-порта
 
@@ -167,22 +168,23 @@ def comm_inverter(msg_wr):
     else: 
         ser_state = True
         #print('СОМ-порт ОК\n\r')
-        ser.flushInput()  # очистить буфер ввода
-        ser.flushOutput() # очистить буфер вывода
-        time.sleep(0.1)
+#        ser.flushInput()  # очистить буфер ввода
+#        ser.flushOutput() # очистить буфер вывода
+#        time.sleep(0.1)
 
 # - передача данных в СОМ-порт
 
         ser.write(bytearray(msg_wr))  
-        #print('передача запроса в СОМ-порт')
+        print('передача запроса в СОМ-порт', bytearray(msg_wr))
         print('Write to INVERTER', bytes(msg_wr)) 
-        time.sleep(0.5)
+        time.sleep(0.1)
     
 # - прием данных из СОМ-порта и вычисление CRC
   
         msg_rd = ser.readline()
         #print('\n\rприем данных из СОМ-порта')
         length = len(msg_rd)
+        #data = msg_rd[:-3].decode('utf-8')
         data = msg_rd[:-3]
         rd_crc = msg_rd[-3:-1]
         calc_crc = crc16(data)
@@ -721,4 +723,3 @@ while True :
             #client.publish(topic+'/alarm/alarm_31', alarm_31, 0)
             #client.publish(topic+'/alarm/alarm_32', alarm_32, 0)  
             client.publish(topic+'/alarm/QPIWS_comm', comm_state, 0)
-
