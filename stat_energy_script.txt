@@ -1,0 +1,64 @@
+var start_time, read;
+
+/**
+ * Опишите эту функцию…
+ *
+ * год          String(getDateObject(([(new Date().getFullYear()),'/','1/1 00:00:00'].join(''))).getTime()) + 'ms'
+ * месяц        String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/1 00:00:00'].join(''))).getTime()) + 'ms'
+ * неделя       String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/',(new Date().getDate()) - (new Date().getDay() === 0 ? 7 : new Date().getDay()),' 00:00:00'].join(''))).getTime()) + 'ms'
+ * день         String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/',(new Date().getDate()),' 00:00:00'].join(''))).getTime()) + 'ms'
+ * час			String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/',(new Date().getDate()),' ',(new Date().getHours()),':00:00'].join(''))).getTime()) + 'ms'
+ * всего до     String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/',(new Date().getDate()),' ',(new Date().getHours()),':',(new Date().getMinutes()),':',(new Date().getSeconds())].join(''))).getTime()) + 'ms'
+ * всего до     String(new Date().getTime()) + 'ms'
+ *
+ * 
+ */
+function read_from_influx() {
+    sendTo("influxdb.0", "query", 'SELECT sum("value") FROM "iobroker".."mqtt.0.my_solar.status.pv_energy" WHERE time >='+ String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/',(new Date().getDay()),' 00:00:00'].join(''))).getTime()) + 'ms'; 
+								  'SELECT sum("value") FROM "iobroker".."mqtt.0.my_solar.status.pv_energy" WHERE time >='+ String(getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/1 00:00:00'].join(''))).getTime()) + 'ms'; 
+	
+	
+	
+									function (result) {
+        if (result.error) {
+            console.error(result.error);
+        } else {
+            // show result
+             console.log('Rows: ' + JSON.stringify(result.result[0]));
+             //setState("javascript.0.scriptinflux.test_val", (JSON.stringify(result.result[0])));
+    
+        }
+    setState("javascript.0.scriptinflux.test_val", (JSON.stringify(result.result[0])));
+    read = (JSON.stringify(result.result[0])); 
+    });
+}
+
+/**
+ * Опишите эту функцию…
+ */
+function read_data_from_influx() {
+    sendTo("influxdb.0", "query", 'SELECT sum("value") FROM "iobroker".."mqtt.0.my_solar.status.pv_energy" WHERE time >='+ String(start_time) + 'ms', function (result) {
+        if (result.error) {
+            console.error(result.error);
+        } else {
+            // show result
+             console.log('Rows: ' + JSON.stringify(result.result[0]));
+             setState("javascript.0.scriptinflux.test_val", (JSON.stringify(result.result[0])));
+             //read = (JSON.stringify(result.result[0])); 
+             read = Math.round(parseFloat(((JSON.stringify(result.result[0])).slice(8, 27)))*10000)/10000;
+             //setState("javascript.0.FromInflux.Result"/*FromInflux.Result*/, Math.round(parseFloat((read.slice(8, 27)))*10000)/10000);
+        }
+    });
+}
+
+
+createState("FromInflux.Result", function () {
+});
+
+on({id: "mqtt.0.my_solar.status.pv_energy"/*my_solar/status/pv_energy*/, change: "any"}, function (obj) {
+  var value = obj.state.val;
+  var oldValue = obj.oldState.val;
+  start_time = getDateObject(([(new Date().getFullYear()),'/',(new Date().getMonth() + 1),'/1 00:00:00'].join(''))).getTime();
+  read_data_from_influx();
+  setState("javascript.0.FromInflux.Result"/*FromInflux.Result*/, read);
+});
