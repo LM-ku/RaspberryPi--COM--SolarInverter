@@ -1,6 +1,6 @@
  # RaspberryPi--COM--SolarInverter
   
- Monitoring and control for solar inverter. Python-scrypt
+ Monitoring and control for solar inverter. Python, JS
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 - HS_MS_MSX_RS232_Protocol_20140822_after_current_upgrade.pdf
