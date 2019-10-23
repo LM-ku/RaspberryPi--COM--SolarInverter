@@ -1,3 +1,7 @@
+// Скрипт IOBroker для учета выработанной и потребленной электроэнергии
+// по обновлению значений солнечной энергии и потребленной электроэнергии,
+// полученных от инвертора, формируются запросы в InfluxDB 
+
 createState("energy_statistics.pv_hour", function () {
 });
 createState("energy_statistics.pv_day", function () {
