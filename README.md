@@ -1,4 +1,4 @@
- # RaspberryPi--COM--SolarInverter
+ # RaspberryPi <--> COM <--> SolarInverter
   
  Monitoring and control for solar inverter. Python, JS
 
